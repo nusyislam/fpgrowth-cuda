@@ -5,6 +5,8 @@
 #   make run-han    build and run the Han & Kamber example with --print-tree
 #   make test       build both binaries and run the full test suite
 #                   (edge cases, brute-force differential, mlxtend cross-check)
+#   make data       download the UCI benchmark datasets and convert them to
+#                   data/processed/<name>.dat (+ .map.tsv item names)
 #   make clean
 #
 # Recipe lines must start with a TAB.
@@ -28,7 +30,7 @@ DOBJ := $(patsubst src/%.cpp,build/debug/%.o,$(SRC))
 TARGET  := fpgrowth$(EXE)
 DTARGET := fpgrowth_debug$(EXE)
 
-.PHONY: all debug run-han test venv clean
+.PHONY: all debug run-han test venv data clean
 
 all: $(TARGET)
 debug: $(DTARGET)
@@ -73,6 +75,15 @@ test: $(TARGET) $(DTARGET) $(PYSTAMP)
 	$(VPY) tests/brute_force.py --binary ./$(DTARGET) --trials 200 --seed 2
 	$(VPY) tests/compare_mlxtend.py data/examples/han.dat 2
 	@echo "All tests passed."
+
+# ---------------------------------------------------------------------------
+# Benchmark datasets (UCI): raw downloads in data/raw/, FIMI files in
+# data/processed/.  Both are gitignored; download skips existing files.
+# ---------------------------------------------------------------------------
+data: $(PYSTAMP)
+	bash scripts/download_data.sh
+	$(VPY) scripts/preprocess.py
+	$(VPY) scripts/dataset_stats.py
 
 clean:
 	rm -rf build $(TARGET) $(DTARGET)

@@ -6,3 +6,5 @@ fpgrowth_debug
 .venv/
 __pycache__/
 tests/failures/
+data/raw/
+data/processed/

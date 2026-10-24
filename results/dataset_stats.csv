@@ -1,0 +1,5 @@
+dataset,transactions,distinct_items,avg_len,min_len,max_len,density,file_size_bytes
+chess,3196,75,37.0,37,37,0.4933,339098
+connect4,67557,129,43.0,43,43,0.3333,9187752
+mushroom,8124,118,22.69,22,23,0.1923,555368
+online_retail,20538,3815,25.24,1,1106,0.0066,2441254
