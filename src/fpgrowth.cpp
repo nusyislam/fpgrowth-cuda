@@ -110,6 +110,7 @@ FPTree buildInitialTree(const Dataset& ds, uint64_t min_count, BuildStats& stats
         if (ranks.empty()) continue;
         std::sort(ranks.begin(), ranks.end());
         tree.insert(ranks.data(), ranks.size());
+        stats.filtered_occurrences += ranks.size();
     }
     tree.freeze();
     stats.tree_nodes = tree.nodeCount();

@@ -8,3 +8,4 @@ __pycache__/
 tests/failures/
 data/raw/
 data/processed/
+results/raw/

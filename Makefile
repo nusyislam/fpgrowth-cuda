@@ -7,6 +7,10 @@
 #                   (edge cases, brute-force differential, mlxtend cross-check)
 #   make data       download the UCI benchmark datasets and convert them to
 #                   data/processed/<name>.dat (+ .map.tsv item names)
+#   make bench      support sweep, scaling, itemset lengths, mlxtend timing
+#                   -> results/*.csv  (resumable: finished rows are skipped;
+#                   delete a CSV to re-measure it).  Takes ~20 min.
+#   make figures    results/figures/*.pdf|png and results/tables.md
 #   make clean
 #
 # Recipe lines must start with a TAB.
@@ -30,7 +34,7 @@ DOBJ := $(patsubst src/%.cpp,build/debug/%.o,$(SRC))
 TARGET  := fpgrowth$(EXE)
 DTARGET := fpgrowth_debug$(EXE)
 
-.PHONY: all debug run-han test venv data clean
+.PHONY: all debug run-han test venv data bench figures clean
 
 all: $(TARGET)
 debug: $(DTARGET)
@@ -84,6 +88,20 @@ data: $(PYSTAMP)
 	bash scripts/download_data.sh
 	$(VPY) scripts/preprocess.py
 	$(VPY) scripts/dataset_stats.py
+
+# ---------------------------------------------------------------------------
+# Benchmarks (run one job at a time; every run is time- and memory-capped,
+# see scripts/benchlib.py) and the report figures / tables built from them.
+# ---------------------------------------------------------------------------
+bench: $(TARGET) $(PYSTAMP)
+	$(VPY) scripts/run_bench.py
+	$(VPY) scripts/run_scaling.py
+	$(VPY) scripts/itemset_lengths.py
+	$(VPY) scripts/vs_mlxtend.py
+
+figures: $(PYSTAMP)
+	$(VPY) scripts/plot.py
+	$(VPY) scripts/make_tables.py
 
 clean:
 	rm -rf build $(TARGET) $(DTARGET)

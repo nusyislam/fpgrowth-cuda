@@ -27,6 +27,7 @@ struct BuildStats {
     std::size_t distinct_items = 0;  // items that appear at least once
     std::size_t frequent_items = 0;  // items with support >= min_count
     std::size_t tree_nodes     = 0;  // nodes in the initial FP-tree (root excluded)
+    std::size_t filtered_occurrences = 0;  // frequent-item occurrences inserted into the tree
 };
 
 // Pass 1 (count + order items) and pass 2 (insert transactions).

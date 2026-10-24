@@ -157,6 +157,7 @@ int main(int argc, char** argv) {
            << " frequent_items=" << bs.frequent_items
            << " min_count=" << min_count
            << " tree_nodes=" << bs.tree_nodes
+           << " filtered_occurrences=" << bs.filtered_occurrences
            << " itemsets=" << sink.count()
            << " cond_trees=" << ms.cond_trees
            << " cond_nodes=" << ms.cond_nodes

@@ -1,0 +1,22 @@
+Benchmark machine (all results/ timings were measured here)
+Collected: 2026-10-24 08:49 UTC
+
+CPU:        Intel(R) Core(TM) i7-14700K
+            28 logical CPUs visible to Linux (14 cores x 2 threads as reported by WSL2;
+            the i7-14700K is physically 8 P-cores + 12 E-cores, 28 threads).
+RAM:        15Gi visible to the WSL2 VM (+ 8.0Gi swap)
+OS:         Ubuntu 26.04 LTS under WSL2 on Windows
+Kernel:     Linux 6.18.54.1-microsoft-standard-WSL2
+Compiler:   g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+Flags:      -std=c++17 -O2 -DNDEBUG (Makefile CXXFLAGS)
+Python:     3.14.4; mlxtend 0.25.0, pandas 3.1.0, numpy 2.5.4, matplotlib 3.11.2
+
+Notes:
+- Runs were under WSL2 (Linux VM on Windows), not bare-metal Linux; Windows
+  background activity and the hybrid P/E-core scheduler add timing noise,
+  which is why every point is a median of 5 (sweep, scaling) or 3 (mlxtend) runs.
+- The fpgrowth binary is single-threaded. Runs were sequential, one at a time.
+- Every run was capped at a 4 GB address space (prlimit --as) and a 120 s
+  timeout (300 s for mlxtend); see scripts/benchlib.py.
+- peak_rss_kb is getrusage(ru_maxrss) of the binary itself; it is launched via
+  'timeout' so it does not inherit the Python driver's RSS.
