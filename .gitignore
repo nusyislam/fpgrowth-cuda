@@ -1,0 +1,7 @@
+build/
+fpgrowth
+fpgrowth_debug
+*.exe
+*.o
+.venv/
+__pycache__/
