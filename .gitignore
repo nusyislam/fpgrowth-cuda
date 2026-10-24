@@ -5,3 +5,4 @@ fpgrowth_debug
 *.o
 .venv/
 __pycache__/
+tests/failures/
