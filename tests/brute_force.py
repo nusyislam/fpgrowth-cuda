@@ -11,11 +11,12 @@ including 1) and compares itemsets and supports exactly.
 On a mismatch the dataset and an expected-vs-actual diff are saved under
 tests/failures/ so the case can be replayed.
 
-Usage: brute_force.py [--trials N] [--seed S] [--binary PATH]
+Usage: brute_force.py [--trials N] [--seed S] [--binary PATH] [--args "EXTRA ARGS"]
 """
 import argparse
 import itertools
 import random
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -125,7 +126,9 @@ def main():
     ap.add_argument("--trials", type=int, default=500)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--binary", default="./fpgrowth")
+    ap.add_argument("--args", default="", help="extra arguments for every run, e.g. '--threads 4'")
     args = ap.parse_args()
+    extra = shlex.split(args.args)
 
     binary = str(Path(args.binary).resolve())
     rng = random.Random(args.seed)
@@ -143,7 +146,7 @@ def main():
                 threshold = parse_min_support(sup_arg, len(transactions))
                 expected = {k: c for k, c in counts.items() if c >= threshold}
 
-                proc = subprocess.run([binary, str(dat), sup_arg],
+                proc = subprocess.run([binary, str(dat), sup_arg, *extra],
                                       capture_output=True, text=True, timeout=120)
                 note, actual = None, None
                 if "Sanitizer" in proc.stderr or "runtime error" in proc.stderr:
@@ -169,7 +172,7 @@ def main():
             if trial % 100 == 0:
                 print(f"  ... {trial}/{args.trials} trials, {checks} runs, {failed} failures")
 
-    print(f"brute force vs {args.binary}: {args.trials} datasets, {checks} runs, "
+    print(f"brute force vs {args.binary}{' ' + args.args if args.args else ''}: {args.trials} datasets, {checks} runs, "
           f"{passed} passed, {failed} failed, {sanitizer} sanitizer reports (seed {args.seed})")
     return 1 if failed else 0
 

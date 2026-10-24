@@ -1,0 +1,29 @@
+Machine: BLACK-OUT   (parallel benchmarks: results/parallel_BLACK-OUT.csv)
+Collected: 2026-10-24 17:36 EDT
+
+CPU:        Intel(R) Core(TM) i7-14700K
+Logical CPUs: 28   (omp_tall uses all of them)
+lscpu:      Thread(s) per core: 2;Core(s) per socket: 14;Socket(s): 1
+RAM:        15.6 GiB   (per-run memory cap 3.8 GiB RSS)
+OS:         Ubuntu 26.04 LTS
+Kernel:     6.18.54.1-microsoft-standard-WSL2   (WSL2 virtual machine)
+C++:        g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+nvcc:       Cuda compilation tools, release 12.4, V12.4.131 Build cuda_12.4.r12.4/compiler.34097967_0
+Python:     3.14.4
+
+gpuinfo:
+CUDA runtime 12.4, driver supports 13.3, 1 device(s)
+Device 0: NVIDIA GeForce RTX 4070
+  compute capability  sm_89
+  SMs                 46
+  global memory       12.0 GiB
+  shared mem / block  48 KiB (opt-in max 99 KiB)
+  L2 cache            36864 KiB
+  max threads / block 1024, warp size 32
+Kernel check on device 0: OK
+
+Notes:
+- Times are medians; --unsorted output to /dev/null (as results/bench.csv).
+- One run at a time; each capped at 120 s wall clock and 3.8 GiB resident memory.
+- CUDA phase times are cudaEvent sums over all calls; with several mining
+  threads, calls on different streams can overlap in time.

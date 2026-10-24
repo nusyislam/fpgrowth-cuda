@@ -3,6 +3,11 @@
 //   fpgrowth <input_file> <min_support> [output_file] [--print-tree] [--unsorted]
 //
 // Timing and counters are written to stderr as one line of key=value pairs.
+//
+// The same file builds the parallel binaries (see the Makefile):
+//   -DFPG_OMP   fpgrowth_omp:  top-level mining loop on OpenMP threads (--threads)
+//   -DFPG_CUDA  fpgrowth_cuda: as fpgrowth_omp, plus GPU counting (src/gpu.h,
+//               --gpu-min-nodes); their stats lines have extra keys at the end.
 #include <cctype>
 #include <chrono>
 #include <cmath>
@@ -18,6 +23,14 @@
 #include "fpgrowth.h"
 #include "fptree.h"
 
+#if defined(FPG_OMP) || defined(FPG_CUDA)
+#  define FPG_PARALLEL 1
+#  include "parallel.h"
+#endif
+#if defined(FPG_CUDA)
+#  include "gpu.h"
+#endif
+
 #if defined(_WIN32)
 // MinGW/MSVC have no <sys/resource.h>; use the Win32 equivalent of ru_maxrss.
 #  define WIN32_LEAN_AND_MEAN
@@ -28,6 +41,14 @@
 #endif
 
 namespace {
+
+#if defined(FPG_CUDA)
+// Conditional trees below this many nodes are counted on the CPU: a GPU round
+// trip (flatten, copy, launch, copy back) costs tens of microseconds, the CPU
+// needs about a nanosecond per node and ancestor.  Chosen from the measured
+// crossover, see GPU_DESIGN.md.
+constexpr uint64_t kDefaultGpuMinNodes = 4096;
+#endif
 
 // Peak resident set size in kilobytes (getrusage ru_maxrss on POSIX).
 long peakRssKB() {
@@ -53,8 +74,30 @@ void usage(const char* prog) {
         << "  min_support   absolute count (e.g. 3) or fraction of transactions (e.g. 0.05)\n"
         << "  output_file   frequent itemsets, one per line as \"1 2 5 (2)\"; default stdout\n"
         << "  --print-tree  print the initial FP-tree and header table to stdout\n"
-        << "  --unsorted    stream itemsets as found instead of buffering and sorting them\n";
+        << "  --unsorted    stream itemsets as found instead of buffering and sorting them\n"
+#if defined(FPG_PARALLEL)
+        << "                (parallel binaries: same lines, in nondeterministic order)\n"
+        << "  --threads N   mining threads (default: all, i.e. omp_get_max_threads())\n"
+#endif
+#if defined(FPG_CUDA)
+        << "  --gpu-min-nodes N  count conditional trees with >= N nodes on the GPU\n"
+        << "                (default " << kDefaultGpuMinNodes << "; the initial tree always goes to the GPU)\n"
+#endif
+        ;
 }
+
+#if defined(FPG_PARALLEL)
+// Non-negative integer option value (--threads checks its own range).
+uint64_t parseCount(const std::string& opt, const char* v) {
+    const std::string s = v;
+    std::size_t pos = 0;
+    unsigned long long n = 0;
+    try { n = std::stoull(s, &pos); } catch (const std::exception&) { pos = 0; }
+    if (s.empty() || pos != s.size() || s[0] == '-')
+        throw std::invalid_argument(opt + " needs a non-negative integer, got: " + s);
+    return n;
+}
+#endif
 
 // "3" -> 3 transactions; "0.05" -> ceil(0.05 * N).  Never less than 1.
 //
@@ -100,8 +143,32 @@ int main(int argc, char** argv) {
 
     std::vector<std::string> pos;
     bool print_tree = false, unsorted = false;
+#if defined(FPG_PARALLEL)
+    uint64_t threads = 0;  // 0: all
+#endif
+#if defined(FPG_CUDA)
+    uint64_t gpu_min_nodes = kDefaultGpuMinNodes;
+#endif
     for (int i = 1; i < argc; ++i) {
         const std::string a = argv[i];
+#if defined(FPG_PARALLEL)
+        try {
+            if (a == "--threads" || a == "--gpu-min-nodes") {
+                if (i + 1 >= argc) throw std::invalid_argument(a + " needs a value");
+#  if defined(FPG_CUDA)
+                if (a == "--gpu-min-nodes") { gpu_min_nodes = parseCount(a, argv[++i]); continue; }
+#  endif
+                if (a == "--threads") {
+                    threads = parseCount(a, argv[++i]);
+                    if (threads == 0 || threads > 4096) throw std::invalid_argument("--threads must be 1..4096");
+                    continue;
+                }
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "error: " << e.what() << '\n';
+            return 2;
+        }
+#endif
         if (a == "--print-tree") print_tree = true;
         else if (a == "--unsorted") unsorted = true;
         else if (a == "-h" || a == "--help") { usage(argv[0]); return 0; }
@@ -115,13 +182,22 @@ int main(int argc, char** argv) {
     const std::string& input = pos[0];
 
     try {
+#if defined(FPG_CUDA)
+        const auto tg0 = Clock::now();
+        Gpu        gpu;  // CUDA context creation: timed apart from the phases below
+        const auto tg1 = Clock::now();
+#endif
         const auto t0 = Clock::now();
         const Dataset ds = readDataset(input);
         const auto t1 = Clock::now();
 
         const uint64_t min_count = parseMinSupport(pos[1], ds.numTransactions());
         BuildStats   bs;
+#if defined(FPG_CUDA)
+        const FPTree tree = buildTreeFromCounts(ds, gpu.countItems(ds), min_count, bs);
+#else
         const FPTree tree = buildInitialTree(ds, min_count, bs);
+#endif
         const auto   t2 = Clock::now();
 
         if (print_tree) {
@@ -140,6 +216,23 @@ int main(int argc, char** argv) {
             out = &file;
         }
 
+#if defined(FPG_PARALLEL)
+        ParallelMiner     sink(static_cast<int>(threads), unsorted ? out : nullptr);
+        const auto        t3 = Clock::now();
+#  if defined(FPG_CUDA)
+        // Initial tree: all conditional supports in one kernel; deeper trees
+        // go to the GPU from the mining threads when large enough.
+        const std::vector<uint32_t> top = tree.singlePath() ? std::vector<uint32_t>{} : gpu.countTree(tree);
+        const MiningStats ms = sink.mine(tree, min_count, top, gpu.threadCounters(sink.threads(), gpu_min_nodes));
+#  else
+        const MiningStats ms = sink.mine(tree, min_count, {}, {});
+#  endif
+        const auto        t4 = Clock::now();
+
+        sink.finish(*out);
+        out->flush();
+        const auto t5 = Clock::now();
+#else
         ItemsetSink sink(unsorted ? out : nullptr);
         const auto        t3 = Clock::now();
         const MiningStats ms = fpgrowth(tree, min_count, sink);
@@ -148,6 +241,7 @@ int main(int argc, char** argv) {
         if (!unsorted) sink.writeSorted(*out);
         out->flush();
         const auto t5 = Clock::now();
+#endif
 
         std::ostringstream st;
         st << std::fixed << std::setprecision(6)
@@ -166,8 +260,37 @@ int main(int argc, char** argv) {
            << " build_s=" << secs(t1, t2)
            << " mine_s=" << secs(t3, t4)
            << " output_s=" << secs(t4, t5)
+#if defined(FPG_CUDA)
+           << " total_s=" << secs(tg0, t5)  // includes gpu_init_s
+#else
            << " total_s=" << secs(t0, t5)
-           << " peak_rss_kb=" << peakRssKB() << '\n';
+#endif
+           << " peak_rss_kb=" << peakRssKB();
+#if defined(FPG_PARALLEL)
+        st << " threads=" << sink.threads();
+#endif
+#if defined(FPG_CUDA)
+        // Transfers and kernels are cudaEvent times summed over all calls; with
+        // several mining threads, calls on different streams can overlap.
+        const GpuTimes p1 = gpu.passOneTimes(), tt = gpu.topTreeTimes(), ct = gpu.condTreeTimes();
+        GpuTimes       trees = tt;
+        trees += ct;
+        st << " gpu_min_nodes=" << gpu_min_nodes
+           << " gpu_init_s=" << secs(tg0, tg1)
+           << " count_h2d_s=" << p1.h2d_s
+           << " count_kernel_s=" << p1.kernel_s
+           << " count_d2h_s=" << p1.d2h_s
+           << " tree_prep_s=" << trees.prep_s
+           << " tree_h2d_s=" << trees.h2d_s
+           << " tree_kernel_s=" << trees.kernel_s
+           << " tree_d2h_s=" << trees.d2h_s
+           << " gpu_trees=" << trees.calls
+           << " gpu_cond_trees=" << ct.calls
+           << " gpu_tree_nodes=" << trees.nodes
+           << " h2d_bytes=" << p1.h2d_bytes + trees.h2d_bytes
+           << " d2h_bytes=" << p1.d2h_bytes + trees.d2h_bytes;
+#endif
+        st << '\n';
         std::cerr << st.str();
     } catch (const std::exception& e) {
         std::cerr << "error: " << e.what() << '\n';

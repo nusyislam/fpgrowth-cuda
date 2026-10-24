@@ -9,3 +9,6 @@ tests/failures/
 data/raw/
 data/processed/
 results/raw/
+gpuinfo
+fpgrowth_omp
+fpgrowth_cuda
