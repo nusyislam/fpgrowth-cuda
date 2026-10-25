@@ -226,7 +226,7 @@ machines in `LAB_RUN.md`) runs every dataset at 3-4 support levels taken
 from `results/bench.csv`, aiming at serial totals near 0.1 s, 1 s, 10 s and
 25 s. Configs: serial, OpenMP with 1/2/4/8/all threads, CUDA with 1 and all
 mining threads. Each point is the median of 5 runs with `--unsorted` output
-to `/dev/null`. Each run is capped at 120 s and 4 GB resident memory.
+to `/dev/null`. Each run is capped at 120 s and 3.8 GiB resident memory.
 Figures: `omp_speedup_<host>`, `impl_compare_<host>`, `gpu_threshold_<host>`.
 
 ## 6. Results on the development machine (RTX 4070)
@@ -305,7 +305,8 @@ warm-up, median of 5, and checks that both matrices are equal
 
 At the kernel level the GPU wins clearly once a tree has more than a few
 thousand nodes: 9-110× for the kernel alone and 4-39× with the copies,
-growing with tree size. The work is thousands of independent upward walks
+mostly growing with tree size (the largest tree, 455k nodes, gains 83×
+and 32×, less than the 297k-node one). The work is thousands of independent upward walks
 with all atomics in shared memory, which is exactly what a GPU is for. On
 a 411-node tree, launch latency (~25 µs) exceeds the CPU's 8 µs of work.
 Kernel times below 1 ms vary run to run: the same Online Retail 0.2% point
