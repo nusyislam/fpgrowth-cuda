@@ -808,21 +808,8 @@ year and DOI]
 
 # Appendix A: Building and running {-}
 
-All commands run from the repository root.
-
-| Command         | What it does                                                       |
-|:-------------------------|:-------------------------------------------------------------------|
-| `make`          | Optimized serial build, `./fpgrowth` (`make debug`: ASan build) |
-| `make test`     | Edge cases, brute-force tests (also under ASan), mlxtend check on the Han example |
-| `make data`     | Downloads the UCI datasets and converts them to `data/processed/<name>.dat` and `.map.tsv` |
-| `make bench`    | Support sweep, scaling, itemset lengths and mlxtend timing into `results/*.csv` (resumable) |
-| `make figures`  | `results/figures/*` (including the Han tree) and `results/tables.md` |
-| `make examples` | Decoded example patterns, `results/examples.txt` |
-| `make omp`      | OpenMP build, `./fpgrowth_omp` |
-| `make cuda`     | CUDA build, `./fpgrowth_cuda` (variables `ARCH`, `NVCC`, `NVCC_CCBIN`; `ARCH=sm_87` on a Jetson Orin) |
-| `make test-par` | Correctness tests of the parallel binaries |
-| `make report`   | This report, `report/report.docx`, with pandoc |
-
+Instructions for building, testing and running every program and `make`
+target are in `README.md` at the top level of the submitted zip file.
 
 # Appendix B: Repository layout {-}
 

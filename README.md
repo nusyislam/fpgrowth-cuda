@@ -27,6 +27,8 @@ The project report is `report/report.docx`, built from `report/report.md`.
 
 ## Build and run
 
+All commands below run from the repository root.
+
 ```bash
 make                  # ./fpgrowth (optimised)
 make debug            # ./fpgrowth_debug (AddressSanitizer)
