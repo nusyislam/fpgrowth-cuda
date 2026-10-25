@@ -810,8 +810,8 @@ year and DOI]
 
 All commands run from the repository root.
 
-| Command         | What it does                                                                       |
-|:----------------|:-----------------------------------------------------------------------------------|
+| Command         | What it does                                                       |
+|:-------------------------|:-------------------------------------------------------------------|
 | `make`          | Optimized serial build, `./fpgrowth` (`make debug`: ASan build) |
 | `make test`     | Edge cases, brute-force tests (also under ASan), mlxtend check on the Han example |
 | `make data`     | Downloads the UCI datasets and converts them to `data/processed/<name>.dat` and `.map.tsv` |
@@ -826,13 +826,6 @@ All commands run from the repository root.
 
 # Appendix B: Repository layout {-}
 
-| Path                                             | Contents                                                                   |
-|:-------------------------------------------------|:---------------------------------------------------------------------------|
-| `src/fptree.*`, `src/fpgrowth.*`, `src/main.cpp` | Tree, reader, two passes, mining, output, command line and instrumentation |
-| `src/parallel.*`, `src/gpu.h`, `src/cuda/` | OpenMP mining; CUDA kernels and a device check (`gpuinfo.cu`) |
-| `tests/` | Edge cases, brute-force test, mlxtend cross-check, parallel tests |
-| `scripts/` | Download, preprocessing, benchmarks, figures, tables, decoding, examples |
-| `data/examples/han.dat` | The Han and Kamber example (`data/raw/`, `data/processed/` are created by `make data`) |
-| `results/`, `results/figures/` | Benchmark CSVs, `tables.md`, machine descriptions, `examples.txt`; figures |
-| `GPU_DESIGN.md`, `LAB_RUN.md` | Parallel design notes; steps for the lab machines |
-| `report/` | `report.md`, `crossref.lua`, `make_reference.py`, generated `report.docx` |
+The repository layout, the build requirements and the steps to reproduce
+every result in this report are in `README.md` at the top level of the
+submitted zip file.
