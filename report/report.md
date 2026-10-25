@@ -183,7 +183,8 @@ Table: The Han and Kamber example transactions (`data/examples/han.dat`).
 I2: 7, I1: 6, I3: 6, I4: 2 and I5: 2, and a tree of 10 nodes built from 23
 item occurrences, drawn in [@fig:han-tree]. The tie-break puts I1 before I3
 and I4 before I5, the same order as the book, and the tree matches the
-book's FP-tree node for node.
+book's FP-tree node for node. [TODO: verify the item order and the
+FP-tree against the book's figure]
 <!-- src: ./fpgrowth data/examples/han.dat 2 --print-tree (header supports, tree_nodes=10, filtered_occurrences=23) -->
 
 ![The initial FP-tree of the Han and Kamber example, drawn from the program's `--print-tree` output by `scripts/han_tree.py`. Dashed chains are the node-links of each item, in the order the program created the nodes. Notice that every path follows the rank order I2, I1, I3, I4, I5, and that T500 and T700, which start with I1, form their own branch.](../results/figures/han_tree.png){#fig:han-tree width=58%}
@@ -233,6 +234,8 @@ same three weighted prefix paths and yield the same itemsets {I2, I3}: 4,
 ⟨I1:2, I2:2⟩ where the book lists ⟨I2:2, I1:2⟩, with the same itemsets. I
 confirmed both trees by writing each pattern base as a small dataset and
 running `--print-tree` on it, which applies the same ordering rule.
+[TODO: verify the book's drawings of the I3 and I5 conditional trees
+and its list of 13 frequent itemsets against the edition cited in [3]]
 <!-- src: my trees: --print-tree on the pattern bases (I5 -> 1:2 -> 2:2; I3 -> 1:4 -> 2:2 and 2:2); itemsets from ./fpgrowth output. The book's drawings are NOT in the repo: as stated in the assignment request, to be checked against the book (see TODO at reference [3]) -->
 
 ## Automated tests {#sec:tests}
@@ -367,9 +370,9 @@ budget. Connect-4 reaches 173,499,179 itemsets in 44.1 s at 45%, and
 Mushroom 245,818,845 in 54.5 s at 0.5%.
 <!-- src: results/bench.csv chess 0.95, 0.25, 0.20 (over_time_budget, total_s 80.444209, itemsets 291225060); connect4 0.45; mushroom 0.005 -->
 
-![Total runtime (log scale) against minimum support. Notice that the dense datasets give almost straight lines over four orders of magnitude, while Online Retail turns sharply upward below 0.25%. The notes say where and why each sweep stopped.](../results/figures/runtime_vs_support.png){#fig:runtime width=62%}
+![Total runtime (log scale) against minimum support. Notice that the dense datasets give almost straight lines over three to four orders of magnitude, apart from a flatter start at the highest supports, while Online Retail turns sharply upward below 0.25%. The notes say where and why each sweep stopped.](../results/figures/runtime_vs_support.png){#fig:runtime width=62%}
 
-![Number of frequent itemsets (log scale) against minimum support. Notice that each panel has the same shape as the runtime panel in [@fig:runtime]: runtime follows the size of the output.](../results/figures/itemsets_vs_support.png){#fig:itemsets width=62%}
+![Number of frequent itemsets (log scale) against minimum support. Notice that each panel has the same shape as the runtime panel in [@fig:runtime], except at the highest supports, where reading the input dominates the runtime: runtime follows the size of the output.](../results/figures/itemsets_vs_support.png){#fig:itemsets width=62%}
 
 ## Memory and compression
 
@@ -379,7 +382,7 @@ Mushroom at every level, even with 246 million itemsets. Connect-4 uses
 36.3 MB at 0.2%.
 <!-- src: results/bench.csv peak_rss_kb: chess 5232..7020, mushroom 5936..7296 (KB/1024 = 5.1..7.1 MB), connect4 45796..45808, online_retail 10424..37168; results/tables.md ranges -->
 
-![Peak resident memory against minimum support. Notice that memory hardly changes on the dense datasets while the number of itemsets grows by six orders of magnitude, because the itemsets are streamed out, not stored.](../results/figures/memory_vs_support.png){#fig:memory width=62%}
+![Peak resident memory against minimum support. Notice that memory hardly changes on the dense datasets while the number of itemsets grows by five to six orders of magnitude, because the itemsets are streamed out, not stored.](../results/figures/memory_vs_support.png){#fig:memory width=62%}
 
 [@fig:compression] shows the initial tree's size divided by the number of
 item occurrences inserted into it (1 would mean no prefix sharing). On
@@ -420,11 +423,11 @@ I shuffled Connect-4 and Online Retail once (seed 327), took the first 10,
 25, 50, 75 and 100% of the transactions as nested subsets, and mined each
 at a fixed *relative* support: 70% and 0.5% ([@fig:scaling]). On
 Connect-4, read and build time grow linearly from 5.2 ms to 52.5 ms, but
-mining stays between 0.834 s and 0.913 s, because the itemset count barely
+mining stays between 0.834 s and 0.923 s, because the itemset count barely
 changes (3,797,583 on 10%, 4,129,839 on 100%). On Online Retail, total time
 grows from 0.041 s to 0.198 s although the itemsets *fall* from 60,331 to
 15,143; [@sec:relsup] explains why.
-<!-- src: scripts/run_scaling.py (SEED=327, FRACTIONS, SUPPORT); results/scaling.csv connect4 0.1 (read 0.002707 + build 0.002448 = 5.2 ms; mine 0.833552; itemsets 3797583), connect4 1.0 (read 0.030406 + build 0.022105 = 52.5 ms; mine 0.912986; itemsets 4129839); online_retail 0.1 (total 0.041267, itemsets 60331), 1.0 (total 0.197898, itemsets 15143) -->
+<!-- src: scripts/run_scaling.py (SEED=327, FRACTIONS, SUPPORT); results/scaling.csv connect4 0.1 (read 0.002707 + build 0.002448 = 5.2 ms; mine 0.833552; itemsets 3797583), connect4 1.0 (read 0.030406 + build 0.022105 = 52.5 ms; mine 0.912986; itemsets 4129839), connect4 0.75 mine 0.922902 (max); online_retail 0.1 (total 0.041267, itemsets 60331), 1.0 (total 0.197898, itemsets 15143) -->
 
 ![Runtime against the share of transactions used, at fixed relative support. Notice that on Connect-4 only the small read-and-build part grows with the data, while on Online Retail the total grows although larger subsets produce fewer itemsets.](../results/figures/scaling.png){#fig:scaling width=72%}
 
@@ -436,11 +439,11 @@ including reading the file, building the tree, mining and formatting every
 itemset. **mlxtend's time is only the `fpgrowth()` call** on an already
 one-hot-encoded DataFrame; reading and encoding are excluded. Mine was
 faster in all 13 settings, by 6.3× to 11.3× on the dense datasets and
-23.6× to 29.8× on Online Retail, and on Chess at 60% it peaked at 5.9 MB
+23.6× to 29.8× on Online Retail, and on Chess at 60% it peaked at 5.8 MB
 against 373 MB for the mlxtend process. My program is single-threaded;
 mlxtend averaged about 1.25 CPU-seconds per wall-second and gave similar
 times when forced to one thread, so the gap is not a threading effect.
-<!-- src: results/tables.md "Runtime vs mlxtend" (speedups 6.3x..11.3x dense, 23.6x..29.8x retail; threading note); results/machine.txt (mlxtend 0.25.0; median of 3); results/vs_mlxtend.csv chess 0.6 binary_peak_rss_kb 5900, mlxtend_peak_rss_kb 381524 (= 372.6 MB) -->
+<!-- src: results/tables.md "Runtime vs mlxtend" (speedups 6.3x..11.3x dense, 23.6x..29.8x retail; threading note); results/machine.txt (mlxtend 0.25.0; median of 3); results/vs_mlxtend.csv chess 0.6 binary_peak_rss_kb 5900 (= 5.8 MB), mlxtend_peak_rss_kb 381524 (= 372.6 MB) -->
 
 ![Runtime of this implementation (total, including I/O) and of mlxtend's `fpgrowth()` call (excluding reading and encoding), log scale, labeled with the speedup. Notice that the gap is largest on the sparse Online Retail dataset, although mlxtend is not charged for input processing.](../results/figures/vs_mlxtend.png){#fig:mlxtend width=72%}
 
@@ -463,7 +466,7 @@ Retail ([@fig:phases]).
 On the dense datasets the mining time per itemset is nearly constant: 275
 to 282 ns on Chess from 80% to 25%, 194 to 222 ns on Mushroom from 10% to
 0.5%, and 210 to 254 ns on Connect-4 from 90% to 45%, while the itemset
-count changes by four orders of magnitude. A `perf` profile of Connect-4
+count changes by three to four orders of magnitude. A `perf` profile of Connect-4
 at 70% put about 75% of all samples in the C++ standard library,
 formatting itemsets. Conditional trees are a minor cost: they average only
 3 to 7 nodes on the dense datasets (`cond_nodes / cond_trees`).
@@ -580,8 +583,8 @@ therefore relative to the 1-thread OpenMP run.
 ## CUDA hybrid version {#sec:cuda}
 
 Two facts decided what goes to the GPU: mining is output-bound
-([@sec:outbound]), and conditional trees are tiny (3 to 7 nodes on average
-on the dense datasets, at most about 150 on Online Retail). A CUDA context
+([@sec:outbound]), and conditional trees are tiny (on average 3 to 7 nodes
+on the dense datasets and at most about 150 on Online Retail). A CUDA context
 costs about 0.15 s to create, and one GPU round trip tens of microseconds.
 So only the regular, data-parallel counting steps go to the GPU:
 <!-- src: GPU_DESIGN.md section 1 (~0.15 s context, tens of microseconds); results/bench.csv cond_nodes/cond_trees (dense 3.1..7.2, online_retail 149.1 at 0.5%) -->
@@ -589,8 +592,8 @@ So only the regular, data-parallel counting steps go to the GPU:
 * **Pass 1, item counting:** one thread per item occurrence rather than per
   transaction (Online Retail transactions have 1 to 1,106 items, and one
   long transaction would stall its warp), counting into a shared-memory
-  histogram per block, because global atomics on only 75 to 129 distinct
-  items would collide constantly.
+  histogram per block, because global atomics on the dense datasets' only 75
+  to 129 distinct items would collide constantly.
 * **Conditional-support counting:** the first step of building item $r$'s
   conditional tree walks every node of $r$ up to the root, adding its count
   to each ancestor's item. For all items at once this is a regular
@@ -622,7 +625,7 @@ and 322 conditional trees) and mines in 0.984 s against 1.042 s, a 5.5%
 gain. On Chess at 40% no setting helps.
 <!-- src: results/gpu_threshold_BLACK-OUT.csv online_retail 0.0025: gpu_min_nodes 64 mine_s 1.658004 (gpu_trees 10182), 4096 mine_s 0.984365 (323), 1e9 mine_s 1.041799; 1.658004/1.041799 = 1.59, 0.984365/1.041799 = 0.945; chess 0.4 rows -->
 
-![Mining time with one mining thread against `--gpu-min-nodes`, relative to counting only the initial tree on the GPU (labels: trees counted on the GPU; median of 3). Notice that small thresholds make mining much slower and that 4,096 is the only setting faster than the CPU, by about 5% on Online Retail.](../results/figures/gpu_threshold_BLACK-OUT.png){#fig:gputhresh width=70%}
+![Mining time with one mining thread against `--gpu-min-nodes`, relative to counting only the initial tree on the GPU (labels: trees counted on the GPU; median of 3). Notice that small thresholds make mining much slower and that 4,096 is the fastest setting, about 5% faster than the CPU on Online Retail.](../results/figures/gpu_threshold_BLACK-OUT.png){#fig:gputhresh width=70%}
 
 ## Correctness of the parallel versions {#sec:partests}
 
@@ -630,7 +633,7 @@ gain. On Chess at 40% no setting helps.
 brute-force test, and a comparison with `./fpgrowth` on every dataset at 2
 support levels (identical sorted output, the same `--unsorted` lines, and
 matching counters). `fpgrowth_cuda` also runs with `--gpu-min-nodes 0` (64
-on the larger datasets) so the GPU path handles far more trees. My re-run
+on Online Retail) so the GPU path handles far more trees. My re-run
 for this report passed every check: 6 of 6 edge cases in each of 7
 configurations, all 3,619 brute-force runs (2,683 for `fpgrowth_omp`, 936
 for `fpgrowth_cuda`) and 32 of 32 dataset comparisons. An earlier run had 3
@@ -672,7 +675,7 @@ thread start-up and the serial read and build phases dominate, and 28
 threads are slower than 8.
 <!-- src: GPU_DESIGN.md section 6; results/parallel_BLACK-OUT.csv: 27.771/3.445 = 8.06, 16.596/1.410 = 11.77, 22.061/3.096 = 7.13, 4.084/0.354 = 11.54; omp_t1/omp_t4 3.28..4.02 -->
 
-![OpenMP speedup in total time over the 1-thread OpenMP run. Notice the near-linear scaling up to 4 threads, the flattening between 8 and 28 threads on the dense datasets, and that Online Retail and the hardest Mushroom level keep scaling to 28 threads.](../results/figures/omp_speedup_BLACK-OUT.png){#fig:omp width=62%}
+![OpenMP speedup in total time over the 1-thread OpenMP run. Notice the near-linear scaling up to 4 threads on all but the shortest runs, the flattening between 8 and 28 threads on the dense datasets, and that the two hardest Online Retail levels and the hardest Mushroom level keep scaling to 28 threads.](../results/figures/omp_speedup_BLACK-OUT.png){#fig:omp width=62%}
 
 **CUDA never beats OpenMP on this machine** ([@fig:impl]). On the larger
 settings, CUDA with 28 threads is 0.11 to 0.22 s slower than OpenMP with
@@ -686,7 +689,7 @@ trees to the GPU, and with 28 threads sharing it, Online Retail at 0.2%
 takes 0.576 s against 0.354 s for OpenMP alone.
 <!-- src: GPU_DESIGN.md section 6 (0.11-0.22 s, gpu_init_s 0.14-0.22 s, 2-3.8x slower); results/parallel_BLACK-OUT.csv cuda rows: count_kernel_s + tree_kernel_s 1.54..4.29 ms, transfers 0.17..1.18 ms on chess/mushroom/connect4; gpu_cond_trees online_retail 322, 469, chess 0.3 5, 0.25 8; online_retail 0.002 cuda_tall 0.576, omp_tall 0.354 -->
 
-![Total time relative to serial for serial (S), OpenMP with all threads (O), and CUDA with 1 (C1) or all (C) mining threads; CUDA bars are split into GPU start-up, transfers, kernels and CPU work. Notice that the light start-up segment is the main difference between O and C, and that kernels and transfers are too small to see.](../results/figures/impl_compare_BLACK-OUT.png){#fig:impl width=52%}
+![Total time relative to serial for serial (S), OpenMP with all threads (O), and CUDA with 1 (C1) or all (C) mining threads; CUDA bars are split into GPU start-up, transfers, kernels and CPU work. Notice that the light start-up segment is the main difference between O and C, and that kernels and transfers are barely visible, and only on Online Retail at 0.25% and 0.2%.](../results/figures/impl_compare_BLACK-OUT.png){#fig:impl width=52%}
 
 ## Kernel level: where the GPU does win
 
@@ -699,8 +702,9 @@ are equal ([@fig:kernel]).
 
 
 On trees above a few thousand nodes the GPU wins clearly: 9 to 110 times
-for the kernel alone and 4 to 39 times with the copies, growing with tree
-size. On the largest tree (Online Retail 0.2%, 454,641 nodes) the CPU needs
+for the kernel alone and 4 to 39 times with the copies, mostly growing
+with tree size (the largest tree gains 83 and 32 times, less than the
+297k-node one). On the largest tree (Online Retail 0.2%, 454,641 nodes) the CPU needs
 73.5 ms, the kernel 0.88 ms, the kernel with transfers 2.3 ms, and the
 whole GPU path 9.0 ms. The GPU wins because the work is thousands of independent upward walks with all
 atomics in shared memory. On the 411-node Connect-4 tree the launch latency
