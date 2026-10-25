@@ -10,7 +10,9 @@
 #   make bench      support sweep, scaling, itemset lengths, mlxtend timing
 #                   -> results/*.csv  (resumable: finished rows are skipped;
 #                   delete a CSV to re-measure it).  Takes ~20 min.
-#   make figures    results/figures/*.pdf|png and results/tables.md
+#   make figures    results/figures/*.pdf|png (incl. the Han FP-tree) and results/tables.md
+#   make examples   decoded example patterns -> results/examples.txt (needs make data)
+#   make report     report/report.docx from report/report.md (needs pandoc)
 #   make omp        OpenMP build (parallel top-level mining) -> ./fpgrowth_omp
 #   make cuda       CUDA + OpenMP build                       -> ./fpgrowth_cuda
 #   make gpuinfo    CUDA smoke test: device report + one kernel launch -> ./gpuinfo
@@ -61,7 +63,7 @@ DOBJ := $(patsubst src/%.cpp,build/debug/%.o,$(SRC))
 TARGET  := fpgrowth$(EXE)
 DTARGET := fpgrowth_debug$(EXE)
 
-.PHONY: all debug omp cuda run-han test test-par venv data bench figures clean
+.PHONY: all debug omp cuda run-han test test-par venv data bench figures examples report clean
 
 all: $(TARGET)
 debug: $(DTARGET)
@@ -177,9 +179,30 @@ bench: $(TARGET) $(PYSTAMP)
 	$(VPY) scripts/itemset_lengths.py
 	$(VPY) scripts/vs_mlxtend.py
 
-figures: $(PYSTAMP)
+figures: $(TARGET) $(PYSTAMP)
 	$(VPY) scripts/plot.py
+	$(VPY) scripts/han_tree.py
 	$(VPY) scripts/make_tables.py
+
+examples: $(TARGET) $(PYSTAMP)
+	$(VPY) scripts/examples.py
+
+# ---------------------------------------------------------------------------
+# Report: Markdown -> Word.  crossref.lua numbers figures, tables and sections
+# and turns [@fig:x] / [@tbl:x] / [@sec:x] into references; the HTML source
+# comments in report.md are dropped by the docx writer.
+# ---------------------------------------------------------------------------
+PANDOC ?= pandoc
+
+report: report/report.docx
+
+report/report.docx: report/report.md report/crossref.lua report/reference.docx $(wildcard results/figures/*.png)
+	$(PANDOC) $< --from=markdown --lua-filter=report/crossref.lua --number-sections \
+		--reference-doc=report/reference.docx --resource-path=report -o $@
+
+# Print-oriented styles (11 pt body) on top of pandoc's default reference.docx.
+report/reference.docx: report/make_reference.py
+	python3 $< $(PANDOC) $@
 
 clean:
 	rm -rf build $(TARGET) $(DTARGET) $(OTARGET) $(CTARGET) gpuinfo
