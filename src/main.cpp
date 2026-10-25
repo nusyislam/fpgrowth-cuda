@@ -8,6 +8,7 @@
 //   -DFPG_OMP   fpgrowth_omp:  top-level mining loop on OpenMP threads (--threads)
 //   -DFPG_CUDA  fpgrowth_cuda: as fpgrowth_omp, plus GPU counting (src/gpu.h,
 //               --gpu-min-nodes); their stats lines have extra keys at the end.
+#include <algorithm>
 #include <cctype>
 #include <chrono>
 #include <cmath>
@@ -82,6 +83,8 @@ void usage(const char* prog) {
 #if defined(FPG_CUDA)
         << "  --gpu-min-nodes N  count conditional trees with >= N nodes on the GPU\n"
         << "                (default " << kDefaultGpuMinNodes << "; the initial tree always goes to the GPU)\n"
+        << "  --micro-count R  instead of mining: time the conditional-support counting of\n"
+        << "                the initial tree on the CPU and on the GPU, R reps (one line each)\n"
 #endif
         ;
 }
@@ -136,6 +139,59 @@ double secs(Clock::time_point a, Clock::time_point b) {
     return std::chrono::duration<double>(b - a).count();
 }
 
+#if defined(FPG_CUDA)
+// --micro-count R: time only the conditional-support counting of the initial
+// tree, for every item at once: conditionalSupportsCpu() (one thread) against
+// Gpu::countTree() (flatten, H2D, kernel, D2H).  The CUDA context exists
+// already, and one untimed warm-up of each comes first (the first launch
+// also loads the kernel).  Both results must be equal.  Writes one stderr
+// line of key=value pairs per rep (scripts/kernel_micro.py reads them).
+int microCount(Gpu& gpu, const FPTree& tree, const std::string& input, uint64_t reps) {
+    for (uint64_t rep = 0; rep <= reps; ++rep) {
+        const auto                  c0  = Clock::now();
+        const std::vector<uint64_t> cpu = conditionalSupportsCpu(tree);
+        const auto                  c1  = Clock::now();
+
+        const GpuTimes              before = gpu.topTreeTimes();
+        const auto                  g0     = Clock::now();
+        const std::vector<uint32_t> dev    = gpu.countTree(tree);
+        const auto                  g1     = Clock::now();
+        const GpuTimes              after  = gpu.topTreeTimes();
+
+        if (dev.empty()) {
+            std::cerr << "error: the initial tree has fewer than 2 frequent items "
+                         "(or its matrix is too large for the GPU path)\n";
+            return 1;
+        }
+        if (dev.size() != cpu.size() ||
+            !std::equal(cpu.begin(), cpu.end(), dev.begin(),
+                        [](uint64_t a, uint32_t b) { return a == b; })) {
+            std::cerr << "error: GPU and CPU conditional supports differ\n";
+            return 1;
+        }
+        if (rep == 0) continue;  // warm-up
+
+        std::ostringstream st;
+        st << std::fixed << std::setprecision(9)
+           << "micro file=" << std::filesystem::path(input).filename().string()
+           << " rep=" << rep
+           << " tree_nodes=" << tree.nodeCount()
+           << " frequent_items=" << tree.header().size()
+           << " matrix_entries=" << cpu.size()
+           << " cpu_s=" << secs(c0, c1)
+           << " gpu_prep_s=" << after.prep_s - before.prep_s
+           << " gpu_h2d_s=" << after.h2d_s - before.h2d_s
+           << " gpu_kernel_s=" << after.kernel_s - before.kernel_s
+           << " gpu_d2h_s=" << after.d2h_s - before.d2h_s
+           << " gpu_wall_s=" << secs(g0, g1)
+           << " h2d_bytes=" << after.h2d_bytes - before.h2d_bytes
+           << " d2h_bytes=" << after.d2h_bytes - before.d2h_bytes << '\n';
+        std::cerr << st.str();
+    }
+    return 0;
+}
+#endif
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -148,15 +204,17 @@ int main(int argc, char** argv) {
 #endif
 #if defined(FPG_CUDA)
     uint64_t gpu_min_nodes = kDefaultGpuMinNodes;
+    uint64_t micro_reps    = 0;
 #endif
     for (int i = 1; i < argc; ++i) {
         const std::string a = argv[i];
 #if defined(FPG_PARALLEL)
         try {
-            if (a == "--threads" || a == "--gpu-min-nodes") {
+            if (a == "--threads" || a == "--gpu-min-nodes" || a == "--micro-count") {
                 if (i + 1 >= argc) throw std::invalid_argument(a + " needs a value");
 #  if defined(FPG_CUDA)
                 if (a == "--gpu-min-nodes") { gpu_min_nodes = parseCount(a, argv[++i]); continue; }
+                if (a == "--micro-count") { micro_reps = parseCount(a, argv[++i]); continue; }
 #  endif
                 if (a == "--threads") {
                     threads = parseCount(a, argv[++i]);
@@ -207,6 +265,9 @@ int main(int argc, char** argv) {
             std::cout << '\n';
             std::cout.flush();
         }
+#if defined(FPG_CUDA)
+        if (micro_reps > 0) return microCount(gpu, tree, input, micro_reps);
+#endif
 
         std::ofstream file;
         std::ostream* out = &std::cout;

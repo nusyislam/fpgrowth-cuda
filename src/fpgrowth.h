@@ -100,6 +100,12 @@ public:
     }
 };
 
+// The counting step of conditional-tree construction for every item of `t`
+// on one CPU thread: the same node-link and parent walk that fpgrowth() does
+// per item, written into a TreeCounter-layout matrix.  Used to compare the CPU
+// with the GPU kernel (fpgrowth_cuda --micro-count).
+std::vector<uint64_t> conditionalSupportsCpu(const FPTree& t);
+
 // One iteration of FP-Growth's top-level loop, for the parallel binaries:
 // emit {item of rank r} and mine its conditional tree into `sink`.  `tree`
 // must not be a single path (fpgrowth() handles that case by itself).  `row`

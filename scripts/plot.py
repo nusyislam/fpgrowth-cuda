@@ -15,6 +15,8 @@ and for every machine with results/parallel_<host>.csv (run_parallel_bench.py):
   impl_compare_<host>     serial vs OpenMP vs CUDA runtime per support level, CUDA
                           split into GPU start-up / transfers / kernels / CPU work
   gpu_threshold_<host>    mining time vs fpgrowth_cuda --gpu-min-nodes (1 thread)
+  kernel_micro_<host>     initial-tree conditional-support counting, CPU vs GPU
+                          kernel (kernel_micro.py; machines with that CSV only)
 
 Print-friendly: each dataset has one fixed color *and* marker, phases and
 implementations use gray tones plus hatching, so every figure reads in
@@ -475,6 +477,49 @@ def fig_gpu_threshold(host):
     save(fig, f"gpu_threshold_{host}")
 
 
+def node_count(n):
+    return f"{n / 1000:.3g}k" if n >= 1000 else f"{n:.0f}"
+
+
+def fig_kernel_micro(host):
+    path = RESULTS / f"kernel_micro_{host}.csv"
+    if not path.exists():
+        return
+    rows = [r for r in read(path.name) if r["status"] == "ok"]
+    if not rows:
+        return
+    # Implementations in gray tones + hatching, as elsewhere (hues mean datasets).
+    bars = [("cpu_s", "CPU, 1 thread", PHASES[2][2], ""),
+            ("gpu_kernel_s", "GPU kernel", "#9a9993", ""),
+            ("gpu_kernel_xfer_s", "GPU kernel + transfers", "#c4c3bd", "////"),
+            ("gpu_wall_s", "GPU incl. flatten tree + unpack (CPU side)", "#e4e3df", "xxxx")]
+    fig, ax = plt.subplots(figsize=(6.5, 3.1))
+    w = 0.2
+    for i, r in enumerate(rows):
+        cpu = num(r, "cpu_s")
+        for j, (k, label, color, hatch) in enumerate(bars):
+            x = i + (j - 1.5) * w
+            v = num(r, k) * 1e3
+            ax.bar(x, v, w * 0.92, color=color, hatch=hatch,
+                   edgecolor="white" if j < 2 else MUTED, linewidth=0.6 if j < 2 else 0.4,
+                   label=label if i == 0 else None)
+            if j > 0:
+                ax.text(x, v * 1.12, f"{cpu / num(r, k):.3g}×", ha="center", va="bottom",
+                        fontsize=5.5, color=INK, rotation=90)
+    ax.set_yscale("log")
+    ax.set_ylim(top=ax.get_ylim()[1] * 6)
+    ax.set_xticks(range(len(rows)),
+                  [f"{LABEL[r['dataset']]}\n{pct(num(r, 'min_support'))}\n"
+                   f"{node_count(num(r, 'tree_nodes'))} nodes" for r in rows], fontsize=6.5)
+    ax.grid(axis="x", visible=False)
+    ax.set_ylabel("time (ms, log scale)")
+    ax.set_title(f"Conditional supports of the initial FP-tree on {host}, CUDA context excluded "
+                 "(labels: speedup over CPU)", color=INK, loc="left", fontsize=8)
+    ax.legend(loc="upper left", ncol=2, fontsize=7)
+    fig.tight_layout()
+    save(fig, f"kernel_micro_{host}")
+
+
 def main():
     per_dataset("runtime_vs_support", "total runtime (s, log scale)",
                 lambda r: num(r, "total_s"), logy=True)
@@ -493,6 +538,7 @@ def main():
         fig_omp_speedup(host)
         fig_impl_compare(host)
         fig_gpu_threshold(host)
+        fig_kernel_micro(host)
 
 
 if __name__ == "__main__":

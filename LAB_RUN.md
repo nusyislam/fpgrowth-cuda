@@ -120,14 +120,21 @@ Outputs (named by host name, so machines never overwrite each other):
 - `results/gpu_threshold_<host>.csv`: the `--gpu-min-nodes` sweep
 - `results/gpu_info_<host>.txt`: CPU, cores, RAM, OS, compilers, CUDA, `gpuinfo` output, Jetson power mode
 
+Then the kernel micro-benchmark (seconds to a minute). It times only the
+GPU counting kernel against the CPU on the initial tree:
+
+```bash
+python3 scripts/kernel_micro.py 2>&1 | tee kernel_micro.log   # -> results/kernel_micro_<host>.csv
+```
+
 ## 7. Copy the results back and plot (on your own machine)
 
 ```bash
 cd ~/fpgrowth
 scp 'USER@LAB:fpgrowth/results/parallel_*.csv' 'USER@LAB:fpgrowth/results/gpu_threshold_*.csv' \
-    'USER@LAB:fpgrowth/results/gpu_info_*.txt' results/
+    'USER@LAB:fpgrowth/results/kernel_micro_*.csv' 'USER@LAB:fpgrowth/results/gpu_info_*.txt' results/
 make figures                             # adds omp_speedup_<host>, impl_compare_<host>,
-                                         # gpu_threshold_<host> for every machine
+                                         # gpu_threshold_<host>, kernel_micro_<host>
 git add results/ && git commit -m "Parallel benchmark results from <host>"
 ```
 

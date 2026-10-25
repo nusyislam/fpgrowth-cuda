@@ -282,3 +282,57 @@ What the numbers say:
   multi-core CPU is the better parallel target. The GPU would matter more
   with much larger initial trees (millions of nodes, many transactions) and
   fewer, larger conditional trees, i.e. higher support on bigger data.
+
+### Kernel level: where the GPU does win
+
+`scripts/kernel_micro.py` isolates the one step the GPU replaces: computing
+the conditional supports of every item of the *initial* tree. It compares
+`conditionalSupportsCpu()` (the miner's own walk, one thread) with the GPU
+path, inside one process after the CUDA context exists and after one
+warm-up, median of 5, and checks that both matrices are equal
+(`results/kernel_micro_BLACK-OUT.csv`, figure `kernel_micro_BLACK-OUT`):
+
+| Dataset | Min sup | Tree nodes | CPU | GPU kernel | + transfers | + flatten/unpack |
+|:---|---:|---:|---:|---:|---:|---:|
+| Chess | 60% | 10,844 | 0.47 ms | 0.036 ms (13×) | 0.076 ms (6.2×) | 0.16 ms (3.0×) |
+| Chess | 25% | 31,813 | 1.69 ms | 0.047 ms (36×) | 0.12 ms (15×) | 0.30 ms (5.6×) |
+| Mushroom | 10% | 14,074 | 0.47 ms | 0.025 ms (18×) | 0.067 ms (7.0×) | 0.14 ms (3.2×) |
+| Mushroom | 1% | 26,388 | 0.87 ms | 0.033 ms (26×) | 0.096 ms (9.1×) | 0.23 ms (3.8×) |
+| Connect-4 | 85% | 411 | 0.008 ms | 0.025 ms (0.33×) | 0.051 ms (0.16×) | 0.072 ms (0.11×) |
+| Connect-4 | 50% | 5,715 | 0.27 ms | 0.030 ms (9.2×) | 0.062 ms (4.4×) | 0.10 ms (2.7×) |
+| Online Retail | 1% | 297,089 | 30.2 ms | 0.28 ms (110×) | 0.78 ms (39×) | 5.5 ms (5.5×) |
+| Online Retail | 0.2% | 454,641 | 73.5 ms | 0.88 ms (83×) | 2.3 ms (32×) | 9.0 ms (8.2×) |
+
+At the kernel level the GPU wins clearly once a tree has more than a few
+thousand nodes: 9-110× for the kernel alone and 4-39× with the copies,
+growing with tree size. The work is thousands of independent upward walks
+with all atomics in shared memory, which is exactly what a GPU is for. On
+a 411-node tree, launch latency (~25 µs) exceeds the CPU's 8 µs of work.
+Kernel times below 1 ms vary run to run: the same Online Retail 0.2% point
+measured 0.56 ms in an earlier run.
+
+Why none of this shows up end to end:
+
+1. **The step is a tiny part of the run.** Even its largest instance, 73 ms
+   on Online Retail 0.2%, is 1.8% of the serial run (4.08 s); on Chess 25% it
+   is 1.7 ms of 27.8 s. Mining time is dominated by formatting itemsets and
+   by many tiny conditional trees (section 1).
+2. **Fixed costs exceed the saving.** Creating the CUDA context costs
+   0.14-0.22 s per run, more than the best saving here (73 → 9 ms). For the
+   large trees the GPU path is also dominated by its own CPU side:
+   flattening 455k nodes into arrays and unpacking the 2.7M-entry matrix
+   take ~6.7 ms, three times the copies plus kernel.
+3. **Against OpenMP the CPU work is not serial.** In `fpgrowth_omp` each
+   item's counting walk runs inside that item's task, spread over all
+   threads. The GPU call for the initial tree runs once, before the parallel
+   loop, on the critical path: 9 ms of wall time, while 73 ms of CPU work
+   spread evenly over 28 threads would cost only a few ms.
+4. **Deeper trees are too small.** The rest of the counting happens in
+   conditional trees that average 4-14 nodes. At that size the GPU loses
+   even on the kernel alone (as the 411-node Connect-4 85% tree shows), so
+   the miner keeps them on the CPU (`--gpu-min-nodes`).
+
+So the GPU kernel is fast, but it accelerates a step that is a small
+fraction of FP-growth's runtime on these datasets. That fraction would grow
+with much larger initial trees, such as more transactions or more distinct
+items at a support where conditional trees stay large.

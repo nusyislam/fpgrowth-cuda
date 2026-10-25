@@ -357,3 +357,18 @@ MiningStats mineTopLevelItem(const FPTree& tree, int32_t r, const uint32_t* row,
     m.mineItem(tree, r, row);
     return m.stats();
 }
+
+std::vector<uint64_t> conditionalSupportsCpu(const FPTree& t) {
+    const std::vector<HeaderEntry>& H = t.header();
+    const int32_t         F = static_cast<int32_t>(H.size());
+    std::vector<uint64_t> M(TreeCounter::triRow(F), 0);
+    for (int32_t r = 1; r < F; ++r) {
+        uint64_t* cnt = M.data() + TreeCounter::triRow(r);
+        for (int32_t n = H[static_cast<std::size_t>(r)].head; n != FPTree::NONE; n = t.node(n).next_link) {
+            const uint32_t c = t.node(n).count;
+            for (int32_t a = t.node(n).parent; a != FPTree::ROOT; a = t.node(a).parent)
+                cnt[static_cast<std::size_t>(t.node(a).rank)] += c;
+        }
+    }
+    return M;
+}

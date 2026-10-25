@@ -176,10 +176,11 @@ def rss_kb(pids):
     return total
 
 
-def run_capped(cmd, timeout=TIMEOUT_S):
+def run_capped(cmd, timeout=TIMEOUT_S, raw=False):
     """One run, through `timeout` (so the binary is a fresh process and its own
     peak_rss_kb is not inflated by Python's), with the resident-memory cap.
-    Returns (status, stats): status "ok", "timeout", "memory_limit" or "error"."""
+    Returns (status, stats): status "ok", "timeout", "memory_limit" or "error";
+    stats is the parsed last stderr line, or with raw=True the whole stderr."""
     proc = subprocess.Popen(["timeout", str(timeout), *map(str, cmd)], stdout=subprocess.DEVNULL,
                             stderr=subprocess.PIPE, text=True, start_new_session=True)
     deadline = time.monotonic() + timeout + 30
@@ -205,7 +206,7 @@ def run_capped(cmd, timeout=TIMEOUT_S):
             return "memory_limit", {}
         print(f"    failed (exit {proc.returncode}): {err.strip()[-300:]}", file=sys.stderr)
         return "error", {}
-    return "ok", parse_stats(err)
+    return "ok", err if raw else parse_stats(err)
 
 
 def median_row(runs):
