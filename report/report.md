@@ -131,7 +131,7 @@ with an array of start offsets (CSR layout), sorted and de-duplicated.
 broken by ascending item id, in the initial tree and in every conditional
 tree. This makes the trees, counters and output deterministic. As
 [@sec:han] shows, it is also the only reason two of my conditional trees
-for the textbook example are drawn differently from the book.
+for the textbook example are ordered differently from the book.
 
 **Input, output and command line.**
 
@@ -182,10 +182,11 @@ Table: The Han and Kamber example transactions (`data/examples/han.dat`).
 `./fpgrowth data/examples/han.dat 2 --print-tree` reports the supports
 I2: 7, I1: 6, I3: 6, I4: 2 and I5: 2, and a tree of 10 nodes built from 23
 item occurrences, drawn in [@fig:han-tree]. The tie-break puts I1 before I3
-and I4 before I5, the same order as the book, and the tree matches the
-book's FP-tree node for node. [TODO: verify the item order and the
-FP-tree against the book's figure]
-<!-- src: ./fpgrowth data/examples/han.dat 2 --print-tree (header supports, tree_nodes=10, filtered_occurrences=23) -->
+and I4 before I5, the same header order and supports as Figure 6.7 of
+[3, p. 258], and the tree has the same nodes and counts as that figure.
+Only the left-to-right order of siblings and the way the node-links are
+drawn differ.
+<!-- src: ./fpgrowth data/examples/han.dat 2 --print-tree (header supports, tree_nodes=10, filtered_occurrences=23); compared by hand with Fig. 6.7, p. 258 of the 3rd ed. (2012) -->
 
 ![The initial FP-tree of the Han and Kamber example, drawn from the program's `--print-tree` output by `scripts/han_tree.py`. Dashed chains are the node-links of each item, in the order the program created the nodes. Notice that every path follows the rank order I2, I1, I3, I4, I5, and that T500 and T700, which start with I1, form their own branch.](../results/figures/han_tree.png){#fig:han-tree width=58%}
 
@@ -225,8 +226,11 @@ the 13 frequent itemsets of the book: `1 (6)`, `1 2 (4)`, `1 2 3 (2)`,
 `2 5 (2)`, `3 (6)`, `4 (2)`, `5 (2)`.
 <!-- src: output and stats line of ./fpgrowth data/examples/han.dat 2 (itemsets=13 cond_trees=5 cond_nodes=8 single_paths=4) -->
 
-**Difference from the textbook figure.** The book draws I3's conditional
-tree as ⟨I2:4, I1:2⟩ plus ⟨I1:2⟩, with I2 on top. Mine is ⟨I1:4, I2:2⟩
+**Difference from the textbook.** Table 6.2 of [3, p. 259] lists the same
+four conditional pattern bases and the same frequent patterns with the same
+supports as [@tbl:han-walk]. The only difference is the item order inside
+two conditional FP-trees. The book gives I3's conditional tree as
+⟨I2:4, I1:2⟩ plus ⟨I1:2⟩, with I2 on top. Mine is ⟨I1:4, I2:2⟩
 plus ⟨I2:2⟩, with I1 on top, because I1 and I2 tie at support 4 in I3's
 pattern base and my rule puts the lower item id first. Both trees hold the
 same three weighted prefix paths and yield the same itemsets {I2, I3}: 4,
@@ -234,9 +238,7 @@ same three weighted prefix paths and yield the same itemsets {I2, I3}: 4,
 ⟨I1:2, I2:2⟩ where the book lists ⟨I2:2, I1:2⟩, with the same itemsets. I
 confirmed both trees by writing each pattern base as a small dataset and
 running `--print-tree` on it, which applies the same ordering rule.
-[TODO: verify the book's drawings of the I3 and I5 conditional trees
-and its list of 13 frequent itemsets against the edition cited in [3]]
-<!-- src: my trees: --print-tree on the pattern bases (I5 -> 1:2 -> 2:2; I3 -> 1:4 -> 2:2 and 2:2); itemsets from ./fpgrowth output. The book's drawings are NOT in the repo: as stated in the assignment request, to be checked against the book (see TODO at reference [3]) -->
+<!-- src: my trees: --print-tree on the pattern bases (I5 -> 1:2 -> 2:2; I3 -> 1:4 -> 2:2 and 2:2); itemsets from ./fpgrowth output. Book side: Table 6.2, p. 259 of the 3rd ed. (2012), checked by hand against the printed book; the book's figure and table are not reproduced here -->
 
 ## Automated tests {#sec:tests}
 
@@ -782,8 +784,7 @@ candidate generation," in *Proc. ACM SIGMOD Int. Conf. on Management of
 Data*, Dallas, TX, 2000, pp. 1–12.
 
 [3] J. Han, M. Kamber, and J. Pei, *Data Mining: Concepts and Techniques*,
-3rd ed. Morgan Kaufmann, 2012. [TODO: verify citation: edition and year
-the course uses, and the table/figure numbers of the FP-Growth example]
+3rd ed. Morgan Kaufmann, 2012.
 
 [4] UCI Machine Learning Repository, University of California, Irvine.
 https://archive.ics.uci.edu [TODO: verify citation: the repository's
