@@ -639,7 +639,7 @@ on Online Retail) so the GPU path handles far more trees. My re-run
 for this report passed every check: 6 of 6 edge cases in each of 7
 configurations, all 3,619 brute-force runs (2,683 for `fpgrowth_omp`, 936
 for `fpgrowth_cuda`) and 32 of 32 dataset comparisons. An earlier run had 3
-failures in the 936 `fpgrowth_cuda` brute-force runs. In each,
+failures in the `fpgrowth_cuda` brute-force runs. In each,
 `cudaSetDevice` failed with "CUDA-capable device(s) is/are busy or
 unavailable" and the program exited before reading any data, so no wrong
 output was produced; replaying the three failed cases gave the correct
