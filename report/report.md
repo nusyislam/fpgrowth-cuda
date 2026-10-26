@@ -797,9 +797,8 @@ used.
 [6] "Mushroom," UCI Machine Learning Repository, 1981. [Online].
 Available: https://doi.org/10.24432/C5959T. Records drawn from *The
 Audubon Society Field Guide to North American Mushrooms*, G. H. Lincoff
-(Pres.), Alfred A. Knopf, 1981, pp. 500–525. [TODO: verify the field
-guide's title, editor, publisher and year; the UCI page names only the
-"Audobon Society Field Guide" and pp. 500-525]
+(Pres.), New York: Alfred A. Knopf, 1981, pp. 500–525, as given in the
+dataset's `agaricus-lepiota.names` file.
 
 [7] A. Shapiro. "Chess (King-Rook vs. King-Pawn)," UCI Machine Learning
 Repository, 1983. [Online]. Available: https://doi.org/10.24432/C5DK5C.
