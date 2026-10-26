@@ -786,30 +786,29 @@ Data*, Dallas, TX, 2000, pp. 1–12.
 [3] J. Han, M. Kamber, and J. Pei, *Data Mining: Concepts and Techniques*,
 3rd ed. Morgan Kaufmann, 2012.
 
-[4] UCI Machine Learning Repository, University of California, Irvine.
-https://archive.ics.uci.edu [TODO: verify citation: the repository's
-preferred citation format]
+[4] Markelle Kelly, Rachel Longjohn, Kolby Nottingham, The UCI Machine
+Learning Repository, https://archive.ics.uci.edu
 
 [5] S. Raschka, "MLxtend: Providing machine learning and data science
 utilities and extensions to Python's scientific computing stack," *Journal
 of Open Source Software*, vol. 3, no. 24, p. 638, 2018. Version 0.25.0
 used.
 
-[6] J. Schlimmer (donor), "Mushroom," UCI Machine Learning Repository,
-1987. https://archive.ics.uci.edu/dataset/73. Records drawn from *The
+[6] "Mushroom," UCI Machine Learning Repository, 1981. [Online].
+Available: https://doi.org/10.24432/C5959T. Records drawn from *The
 Audubon Society Field Guide to North American Mushrooms*, G. H. Lincoff
-(Pres.), Alfred A. Knopf, 1981. [TODO: verify citation: DOI]
+(Pres.), Alfred A. Knopf, 1981, pp. 500–525. [TODO: verify the field
+guide's title, editor, publisher and year; the UCI page names only the
+"Audobon Society Field Guide" and pp. 500-525]
 
-[7] A. Shapiro (original), R. Holte (donor), "Chess (King-Rook vs.
-King-Pawn)," UCI Machine Learning Repository, 1989.
-https://archive.ics.uci.edu/dataset/22. [TODO: verify citation: DOI]
+[7] A. Shapiro. "Chess (King-Rook vs. King-Pawn)," UCI Machine Learning
+Repository, 1983. [Online]. Available: https://doi.org/10.24432/C5DK5C.
 
-[8] J. Tromp, "Connect-4," UCI Machine Learning Repository, 1995.
-https://archive.ics.uci.edu/dataset/26. [TODO: verify citation: DOI]
+[8] J. Tromp. "Connect-4," UCI Machine Learning Repository, 1995.
+[Online]. Available: https://doi.org/10.24432/C59P43.
 
-[9] "Online Retail," UCI Machine Learning Repository.
-https://archive.ics.uci.edu/dataset/352. [TODO: verify citation: creator,
-year and DOI]
+[9] D. Chen. "Online Retail," UCI Machine Learning Repository, 2015.
+[Online]. Available: https://doi.org/10.24432/C5BW33.
 
 # Appendix A: Building and running {-}
 
