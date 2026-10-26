@@ -639,11 +639,12 @@ on Online Retail) so the GPU path handles far more trees. My re-run
 for this report passed every check: 6 of 6 edge cases in each of 7
 configurations, all 3,619 brute-force runs (2,683 for `fpgrowth_omp`, 936
 for `fpgrowth_cuda`) and 32 of 32 dataset comparisons. An earlier run had 3
-failures, all `fpgrowth_cuda` exiting at start-up with "CUDA-capable
-device(s) is/are busy or unavailable" before doing any work; replaying a
-failed case gave the correct output.
-[TODO: decide whether to keep the note on the transient CUDA start-up failure]
-<!-- src: tests/run_parallel_tests.sh; make test-par output, first run 2026-10-25 (3 FAIL, cudaSetDevice busy) and re-run 2026-10-25 (test-par: all passed; brute force omp 2010 + 673 = 2683, cuda 667 + 269 = 936, total 3619; 32 dataset PASS lines) -->
+failures in the 936 `fpgrowth_cuda` brute-force runs. In each,
+`cudaSetDevice` failed with "CUDA-capable device(s) is/are busy or
+unavailable" and the program exited before reading any data, so no wrong
+output was produced; replaying the three failed cases gave the correct
+output. I did not identify the cause.
+<!-- src: tests/run_parallel_tests.sh; make test-par output, first run 2026-10-25 (3 FAIL, cudaSetDevice busy; tests/failures/trial0013_sup2, trial0036_sup0p100000000, trial0099_sup0p464285714, info.txt exit 1, empty actual.txt) and re-run 2026-10-25 (test-par: all passed; brute force omp 2010 + 673 = 2683, cuda 667 + 269 = 936, total 3619; 32 dataset PASS lines); replay 2026-10-26 of the 3 cases with ./fpgrowth_cuda (default and --gpu-min-nodes 0 --threads 4): exit 0, output = expected.txt -->
 
 ## Results on the RTX 4070 machine
 
