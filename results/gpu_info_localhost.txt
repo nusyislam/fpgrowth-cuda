@@ -1,0 +1,30 @@
+Machine: localhost   (parallel benchmarks: results/parallel_localhost.csv)
+Collected: 2026-10-29 18:29 EDT
+
+CPU:        Cortex-A78AE   (board: NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super)
+Logical CPUs: 6   (omp_tall uses all of them)
+lscpu:      Thread(s) per core: 1;Core(s) per cluster: 6;Socket(s): -;CPU max MHz: 1728.0000
+RAM:        7.4 GiB   (per-run memory cap 2.9 GiB RSS)
+OS:         Ubuntu 24.04.4 LTS
+Kernel:     6.8.12-1021-tegra
+C++:        g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+nvcc:       Cuda compilation tools, release 13.2, V13.2.78 Build cuda_13.2.r13.2/compiler.37668154_0
+Python:     3.12.3
+Jetson power mode (nvpmodel -q): NV Power Mode: 25W 1
+
+gpuinfo:
+CUDA runtime 13.2, driver supports 13.2, 1 device(s)
+Device 0: Orin
+  compute capability  sm_87
+  SMs                 8
+  global memory       7.4 GiB (integrated, shared with CPU)
+  shared mem / block  48 KiB (opt-in max 163 KiB)
+  L2 cache            4096 KiB
+  max threads / block 1024, warp size 32
+Kernel check on device 0: OK
+
+Notes:
+- Times are medians; --unsorted output to /dev/null (as results/bench.csv).
+- One run at a time; each capped at 120 s wall clock and 2.9 GiB resident memory.
+- CUDA phase times are cudaEvent sums over all calls; with several mining
+  threads, calls on different streams can overlap in time.
