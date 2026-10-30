@@ -1,4 +1,4 @@
-Machine: localhost   (parallel benchmarks: results/parallel_localhost.csv)
+Machine: jetson-orin (Jetson Orin Nano, board CAD02, room 281; hostname "localhost")   (parallel benchmarks: results/parallel_jetson-orin.csv)
 Collected: 2026-10-29 18:29 EDT
 
 CPU:        Cortex-A78AE   (board: NVIDIA Jetson Orin Nano Engineering Reference Developer Kit Super)

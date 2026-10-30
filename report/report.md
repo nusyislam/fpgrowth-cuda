@@ -745,9 +745,168 @@ CPU work. A multi-core CPU is the better parallel target here. The GPU
 would matter more with much larger initial trees, from many more
 transactions or items at a support where conditional trees stay large.
 
-## Results on the lab machines
+## Results on the Jetson Orin Nano {#sec:jetson}
 
-[TODO: lab GPU server / Jetson Orin results]
+The lab results come from an NVIDIA Jetson Orin Nano (board CAD02 in room
+281; its hostname is `localhost`, so its result files are named
+`jetson-orin`). `make test-par` passed on this board for both
+`fpgrowth_omp` and `fpgrowth_cuda`: all edge cases, all 3,619 brute-force
+runs and 32 of 32 dataset comparisons. A second Jetson board (CAD06) gave
+nearly identical timings on the runs it completed, for example 7.013 s
+against 7.012 s for serial Chess at 40%.
+<!-- src: results/gpu_info_jetson-orin.txt (Jetson Orin Nano, collected 2026-10-29); make test-par output on CAD02 (all passed, 3619 brute-force runs, 32 dataset PASS lines); CAD06 7.013 s read from the CAD06 terminal output during a partial run that was not saved to the repo; results/parallel_jetson-orin.csv chess 0.4 serial total_s 7.011943 -->
+
+The Jetson is a much smaller machine ([@tbl:hw]): six Arm cores instead
+of 28 logical CPUs, and a GPU with 8 SMs instead of 46 that has no memory
+of its own but shares the board's 7.4 GiB with the CPU. It ran in its
+25 W power mode. The benchmarks are the same as on the RTX 4070 machine,
+as medians of 3 runs (5 for the kernel micro-benchmark), each capped at
+120 s and 2.9 GiB resident memory. The script picks the support levels
+by runtime, so the Jetson ran three levels per dataset, not four; all 12
+were also run on the RTX 4070 machine. On these 12 levels the serial
+binary is 2.9 to 4.2 times slower on the Jetson.
+<!-- src: results/gpu_info_jetson-orin.txt (6 logical CPUs, Cortex-A78AE, 7.4 GiB, 2.9 GiB RSS cap, 120 s, "NV Power Mode: 25W", Orin sm_87, 8 SMs, "integrated, shared with CPU"); results/gpu_info_BLACK-OUT.txt (28 logical CPUs, RTX 4070, 46 SMs, 12.0 GiB); results/parallel_jetson-orin.csv reps 3, 12 levels (chess 0.6 0.4 0.3, mushroom 0.1 0.05 0.01, connect4 0.85 0.7 0.6, online_retail 0.01 0.0025 0.002), all present in results/parallel_BLACK-OUT.csv; results/kernel_micro_jetson-orin.csv reps 5; serial total_s Jetson/RTX 2.95 (online_retail 0.0025) to 4.17 (online_retail 0.01) -->
+
+::: {#tbl:hw}
+| | RTX 4070 machine | Jetson Orin Nano (CAD02) |
+|:--|:--|:--|
+| CPU | Intel Core i7-14700K, 28 logical CPUs | 6 Arm Cortex-A78AE cores, 1 thread each, up to 1,728 MHz |
+| Memory | 15.6 GiB | 7.4 GiB, shared by CPU and GPU |
+| GPU | GeForce RTX 4070, sm_89, 46 SMs, 36 MiB L2 | Orin (integrated), sm_87, 8 SMs, 4 MiB L2 |
+| GPU memory | 12.0 GiB, separate, over PCIe | the same 7.4 GiB as the CPU |
+| Power | not recorded | 25 W mode (`nvpmodel`) |
+| Software | Ubuntu 26.04 under WSL2, g++ 15.2, CUDA 12.4 | Ubuntu 24.04, g++ 13.3, CUDA 13.2 |
+| Runs per median, memory cap | 5, 3.8 GiB | 3, 2.9 GiB |
+
+Table: The two machines that ran the parallel benchmarks (from the `gpu_info` files).
+:::
+<!-- src: results/gpu_info_BLACK-OUT.txt and results/gpu_info_jetson-orin.txt (CPU, logical CPUs, lscpu threads per core / CPU max MHz, RAM, GPU, compute capability, SMs, L2 36864 KiB / 4096 KiB, global memory, OS, kernel WSL2 / tegra, g++, nvcc, nvpmodel, RSS caps); results/parallel_*.csv reps -->
+
+::: {#tbl:jetson}
+| Dataset       | Min sup | Itemsets   | Serial | OMP 1  | OMP 2  | OMP 4  | OMP 6      | CUDA 1 | CUDA 6 |
+|:--------------|--------:|-----------:|-------:|-------:|-------:|-------:|-----------:|-------:|-------:|
+| Chess         |     60% |    254,944 |  0.283 |  0.260 |  0.138 |  0.077 |  **0.063** |  0.325 |  0.123 |
+| Chess         |     40% |  6,472,980 |  7.012 |  6.289 |  3.182 |  1.607 |  **1.231** |  6.446 |  1.302 |
+| Chess         |     30% | 37,282,962 | 40.902 | 36.454 | 18.323 |  9.265 |  **6.718** | 36.966 |  6.744 |
+| Mushroom      |     10% |    468,003 |  0.385 |  0.337 |  0.178 |  0.121 |  **0.107** |  0.399 |  0.170 |
+| Mushroom      |      5% |  3,082,813 |  2.515 |  2.187 |  1.101 |  0.615 |  **0.454** |  2.255 |  0.518 |
+| Mushroom      |      1% | 77,322,009 | 68.925 | 59.640 | 29.862 | 15.072 | **10.223** | 59.938 | 10.345 |
+| Connect-4     |     85% |    142,271 |  0.253 |  0.240 |  0.191 |  0.165 |  **0.160** |  0.301 |  0.217 |
+| Connect-4     |     70% |  4,129,839 |  3.887 |  3.410 |  1.781 |  0.996 |  **0.711** |  3.490 |  0.776 |
+| Connect-4     |     60% | 21,252,795 | 20.827 | 18.117 |  9.147 |  4.713 |  **3.361** | 18.242 |  3.403 |
+| Online Retail |      1% |      1,860 |  0.354 |  0.356 |  0.293 |  0.254 |  **0.247** |  0.355 |  0.326 |
+| Online Retail |   0.25% |    596,206 |  3.354 |  3.316 |  1.896 |  1.154 |  **0.903** |  3.195 |  0.965 |
+| Online Retail |    0.2% |  5,944,725 | 12.440 | 11.979 |  6.338 |  3.374 |  **2.400** | 11.951 |  2.462 |
+
+Table: Total time in seconds on the Jetson Orin Nano (median of 3). OMP *n*: `fpgrowth_omp` with *n* threads; CUDA *n*: `fpgrowth_cuda` with *n* mining threads. Bold: fastest.
+:::
+<!-- src: results/parallel_jetson-orin.csv itemsets and total_s for configs serial, omp_t1, omp_t2, omp_t4, omp_tall (6 threads), cuda_t1, cuda_tall (6 threads) -->
+
+**OpenMP scales well on six cores** ([@fig:omp-jetson]). On the dense
+datasets, wherever one thread takes more than 2 s, 4 threads are 3.4 to
+4.0 times faster than one and 6 threads 4.8 to 5.8 times. Unlike on the
+RTX 4070 machine, the curves have not flattened at the last step: going
+from 4 to 6 threads still gains 1.31 to 1.47 times on these runs (1.5
+would be linear). The best speedups over the serial binary are 6.1×
+(Chess 30%), 6.7× (Mushroom 1%), 6.2× (Connect-4 60%) and 5.2× (Online
+Retail 0.2%). They can exceed 6 because of the `--unsorted` buffering
+confound described in [@sec:par]: on the Jetson the 1-thread OpenMP run is
+up to 13.5% faster than the serial binary. The shortest runs, Connect-4 at 85% and
+Online Retail at 1% (0.24 and 0.36 s on one thread), gain only 1.5 and 1.4
+times from 6 threads. In absolute terms, the Jetson's best OpenMP time on
+the hardest level of each dataset is 4.4 to 7.3 times the RTX 4070
+machine's best time at the same level.
+<!-- src: results/parallel_jetson-orin.csv total_s: omp_t1/omp_t4 chess 0.4 3.91, 0.3 3.93, mushroom 0.05 3.56, 0.01 3.96, connect4 0.7 3.42, 0.6 3.84; omp_t1/omp_tall same levels 5.11, 5.43, 4.82, 5.83, 4.79, 5.39; omp_t4/omp_tall 1.31, 1.38, 1.35, 1.47, 1.40, 1.40; serial/omp_tall chess 0.3 40.902/6.718 = 6.09, mushroom 0.01 68.925/10.223 = 6.74, connect4 0.6 20.827/3.361 = 6.20, online_retail 0.002 12.440/2.400 = 5.18; 1 - omp_t1/serial -0.005 (online_retail 0.01) to 0.135 (mushroom 0.01); omp_t1/omp_tall connect4 0.85 1.50, online_retail 0.01 1.44; Jetson omp_tall / best RTX OpenMP (results/parallel_BLACK-OUT.csv min of omp_t4, omp_t8, omp_tall): chess 0.3 6.718/1.271 = 5.29, mushroom 0.01 10.223/1.410 = 7.25, connect4 0.6 3.361/0.772 = 4.36, online_retail 0.002 2.400/0.354 = 6.78 -->
+
+![OpenMP speedup in total time over the 1-thread OpenMP run on the Jetson Orin Nano (6 cores). Notice that the curves are still rising at 6 threads on all but the shortest runs, Connect-4 at 85% and Online Retail at 1%, where the serial read and build phases hold the speedup near 1.5.](../results/figures/omp_speedup_jetson-orin.png){#fig:omp-jetson width=62%}
+
+**CUDA comes close to OpenMP but still does not beat it**
+([@fig:impl-jetson]). With all six threads, `fpgrowth_cuda` is slower
+than `fpgrowth_omp` at every level, by 0.026 to 0.122 s; on the hardest
+level of each dataset this is only 0.4% to 2.6%, against 0.11 to 0.22 s
+on the RTX 4070 machine. On the smallest level of each dataset CUDA with
+6 threads takes 1.3 to 1.9 times as long as OpenMP, but it is still
+faster than the serial binary at every level; on the RTX 4070 machine
+it was 2 to 3.8 times slower than serial at these smallest levels. With one mining
+thread, CUDA beats OpenMP on Online Retail at 0.25% (3.195 s against
+3.316 s, 3.6% faster), the level where 322 conditional trees go to the
+GPU, and matches it at 0.2% (11.951 s against 11.979 s).
+<!-- src: results/parallel_jetson-orin.csv total_s cuda_tall - omp_tall 0.026 (chess 0.3) to 0.122 (mushroom 0.01); cuda_tall/omp_tall chess 0.3 1.004, mushroom 0.01 1.012, connect4 0.6 1.013, online_retail 0.002 1.026; smallest levels chess 0.6 1.95, mushroom 0.1 1.59, connect4 0.85 1.36, online_retail 0.01 1.32; serial/cuda_tall >= 1.09 (online_retail 0.01 0.354/0.326); online_retail 0.0025 cuda_t1 3.195 vs omp_t1 3.316 (gpu_cond_trees 322), 0.002 cuda_t1 11.951 vs omp_t1 11.979 (gpu_cond_trees 469); RTX figures from the Results on the RTX 4070 machine section -->
+
+**GPU start-up is about a third as expensive.** Creating the CUDA
+context (`gpu_init_s`) takes 0.054 to 0.061 s on the Jetson in all 24
+CUDA runs, against 0.139 to 0.218 s on the RTX 4070 machine, while the CPU
+work around it is three to four times slower. The start-up cost is therefore
+clearly visible only on the smallest level of each dataset. The two
+machines differ in GPU type, CUDA version and operating system (the RTX
+4070 machine runs under WSL2), and I did not isolate which of these
+causes the difference.
+<!-- src: results/parallel_jetson-orin.csv gpu_init_s min 0.0543 max 0.0609 over cuda_t1 and cuda_tall rows (12 levels x 2); results/parallel_BLACK-OUT.csv gpu_init_s min 0.1385 max 0.2182; results/gpu_info_*.txt (CUDA 13.2 / 12.4, WSL2 kernel) -->
+
+![Total time relative to serial on the Jetson Orin Nano for serial (S), OpenMP with 6 threads (O), and CUDA with 1 (C1) or 6 (C) mining threads, split as in [@fig:impl]. Notice that the light start-up segment is clearly visible only at the smallest level of each dataset, and that C is within 3% of O at the hardest level of each dataset.](../results/figures/impl_compare_jetson-orin.png){#fig:impl-jetson width=52%}
+
+**The offload threshold matters less on the Jetson** ([@fig:gputhresh-jetson]).
+With one mining thread, a threshold of 64 makes mining only 1.1% slower
+on Online Retail at 0.25% and 2.3% slower on Chess at 40%, against 59%
+and 17% on the RTX 4070 machine. The fastest setting on Online Retail is
+1,024 (947 trees on the GPU): 2.644 s against 2.879 s with only the
+initial tree on the GPU, 8.2% faster. The default of 4,096 gains 5.1%
+(5.5% on the RTX 4070 machine, where 1,024 gains 1.9%). On Chess at 40%
+every threshold from 1,024 up is within 0.4% of the CPU on both
+machines. At a threshold of 64 on Online Retail, flattening, copies and
+kernels add up to 0.437 s on the Jetson against 0.625 s on the RTX 4070
+machine, while mining with the initial tree alone on the GPU takes 2.8
+times as long (2.879 s against 1.042 s), so offloading small trees costs
+a much smaller share of the run.
+<!-- src: results/gpu_threshold_jetson-orin.csv online_retail 0.0025 mine_s: 64 2.910927 (10182 trees), 1024 2.644137 (947), 4096 2.731958 (323), 1e9 2.879181; 2.910927/2.879181 = 1.011, 2.644137/2.879181 = 0.918, 2.731958/2.879181 = 0.949; chess 0.4 64 6.528994 / 1e9 6.381581 = 1.023, 1024..16384 within 0.3%; tree_prep_s + tree_h2d_s + tree_kernel_s + tree_d2h_s at 64: 0.128123 + 0.095248 + 0.167853 + 0.045983 = 0.437; results/gpu_threshold_BLACK-OUT.csv online_retail 0.0025 64 1.658004/1.041799 = 1.59, 1024 1.021526/1.041799 = 0.981, 4096 0.984365/1.041799 = 0.945, at 64: 0.038742 + 0.054430 + 0.317558 + 0.214016 = 0.625; chess 0.4 64 1.941120/1.654133 = 1.17, 1024..16384 within 0.4%; mining 2.879/1.042 = 2.76 -->
+
+![Mining time with one mining thread against `--gpu-min-nodes` on the Jetson Orin Nano, relative to counting only the initial tree on the GPU (labels: trees counted on the GPU; median of 3). Notice that even a threshold of 64 costs only 1 to 2%, and that 1,024 is the fastest setting, about 8% faster on Online Retail.](../results/figures/gpu_threshold_jetson-orin.png){#fig:gputhresh-jetson width=70%}
+
+**At kernel level the GPU still wins, by less** ([@fig:kernel-jetson]).
+On trees above a few thousand nodes the kernel alone is 2.4 to 52 times
+faster than one CPU thread (9 to 110 times on the RTX 4070). On the
+largest tree (Online Retail 0.2%) the CPU needs 233.6 ms, the kernel
+6.86 ms (34×), the kernel with transfers 7.55 ms (31×) and the whole GPU
+path 52.8 ms (4.4×, against 8.2× on the RTX 4070 machine). On the
+411-node Connect-4 tree the Jetson's kernel (17.7 µs) is faster than its
+CPU (26.8 µs), where the RTX 4070 lost (25.0 µs against 8.2 µs), but
+with the copies it loses too (34.9 µs). On Chess and Mushroom the kernel
+takes 0.43 to 0.50 ms for trees of 10.8k to 31.8k nodes, while the
+5.7k-node Connect-4 tree takes 0.045 ms and the 297k-node Online Retail
+tree 2.1 ms; I have not found the reason for this. [TODO: explain the
+Chess/Mushroom kernel times on the Jetson]
+<!-- src: results/kernel_micro_jetson-orin.csv speedup_kernel 2.36 (chess 0.6) to 52.37 (online_retail 0.01) on all but connect4 0.85; online_retail 0.002 cpu_s 0.2335725, gpu_kernel_s 0.006859, speedup_kernel 34.05, gpu_kernel_xfer_s 0.007546 (30.95), gpu_wall_s 0.052830 (4.42); connect4 0.85 cpu_s 0.000026842, gpu_kernel_s 0.000017664, gpu_kernel_xfer_s 0.000034880; gpu_kernel_s chess 0.6 0.000465, 0.25 0.000504, mushroom 0.1 0.000429, 0.01 0.000441 (tree_nodes 10844..31813), connect4 0.5 0.0000446 (5715), online_retail 0.01 0.002132 (297089); results/kernel_micro_BLACK-OUT.csv speedup_kernel 9.17..109.70, online_retail 0.002 speedup_wall 8.18, connect4 0.85 gpu_kernel_s 0.000024992, cpu_s 0.000008184 -->
+
+**Transfers cost less, but not nothing.** `fpgrowth_cuda` copies with
+`cudaMemcpyAsync` on both machines; on the Jetson the source and
+destination are in the same memory, so nothing crosses PCIe. The copies
+add 5% to 12% to the kernel time on Chess, Mushroom and Online Retail,
+against 104% to 191% on the RTX 4070 machine (all trees), and on the
+largest tree take 0.69 ms against 1.43 ms. They are not free, though:
+on the Connect-4 trees they add 50% and 97%, and in the full runs the
+pass-1 copy of the Connect-4 transactions takes 1.7 ms on the Jetson
+against 1.0 ms on the RTX 4070 machine.
+<!-- src: src/cuda/gpu.cu cudaMemcpyAsync (lines 219, 234, 308, 327); results/gpu_info_jetson-orin.txt "integrated, shared with CPU"; results/kernel_micro_jetson-orin.csv (gpu_kernel_xfer_s - gpu_kernel_s)/gpu_kernel_s: chess 0.05, 0.08, mushroom 0.07, 0.09, online_retail 0.12, 0.10, connect4 0.97 (0.85), 0.50 (0.5); online_retail 0.002 0.000687 s; results/kernel_micro_BLACK-OUT.csv same ratio 1.04..1.91, online_retail 0.002 0.001426 s; results/parallel_jetson-orin.csv connect4 count_h2d_s 0.00169..0.00177; results/parallel_BLACK-OUT.csv connect4 count_h2d_s 0.00100..0.00109 -->
+
+**CPU-side preparation dominates the GPU path even more.** Flattening the
+tree and unpacking the result on the CPU take 45.2 ms of the 52.8 ms GPU
+path on Online Retail at 0.2% (86%) and 92% at 1%, against 77% and 81%
+on the RTX 4070 machine (6.9 of 9.0 ms at 0.2%). On Chess at 25% and
+Mushroom at 1% the share is 45% to 49% on both machines. The slower Arm
+cores make this preparation, not the kernel, the cost that limits the
+GPU path. As on the RTX 4070 machine, the whole step is a small part of
+the run: 233.6 ms of the 12.44 s serial run on Online Retail at 0.2%
+(1.9%).
+<!-- src: results/kernel_micro_jetson-orin.csv gpu_prep_s/gpu_wall_s online_retail 0.002 0.045249/0.052830 = 85.7%, 0.01 0.026526/0.028972 = 91.6%, chess 0.25 46.6%, mushroom 0.01 44.5%; results/kernel_micro_BLACK-OUT.csv online_retail 0.002 0.006876/0.008981 = 76.6%, 0.01 80.6%, chess 0.25 47.4%, mushroom 0.01 48.9%; results/parallel_jetson-orin.csv online_retail 0.002 serial total_s 12.440; 0.2336/12.440 = 1.9% -->
+
+![Conditional supports of the initial tree on the Jetson Orin Nano: one CPU thread against the GPU kernel, kernel plus transfers, and the whole GPU path including CPU-side flattening and unpacking (log scale; labels: speedup over the CPU). Notice that the transfer bars are barely taller than the kernel bars except on Connect-4, and that the CPU-side preparation takes most of the GPU path on Online Retail.](../results/figures/kernel_micro_jetson-orin.png){#fig:kernel-jetson width=90%}
+
+The Jetson confirms the conclusion from the RTX 4070 machine: OpenMP
+gives the speedup, 5.2 to 6.7 times on six cores, and the GPU does not
+add to it. The smaller start-up cost and cheaper copies bring CUDA
+within 0.4% to 2.6% of OpenMP on the hardest levels, but the work the GPU can take over is
+still a few percent of the run.
+<!-- src: results/parallel_jetson-orin.csv serial/omp_tall on the hardest level of each dataset 5.18..6.74; cuda_tall/omp_tall 1.004..1.026 on those levels; results/kernel_micro_jetson-orin.csv online_retail 0.002 (1.9% of serial) -->
 
 # Conclusion
 
@@ -771,8 +930,6 @@ than the CPU for its step, but gives no end-to-end gain because that step
 is a few percent of the runtime. Splitting deeper recursion levels across
 threads would be the next improvement.
 <!-- src: make test output (3356, 1354, 6); 14 mlxtend settings = Han + 13 UCI; results/tables.md (compression 0.0001 on Connect-4; mlxtend 6.3x-29.8x); results/bench.csv ns per itemset (194-282 ns); GPU_DESIGN.md section 6 (7.1x-11.8x); results/kernel_micro_BLACK-OUT.csv (110x) -->
-
-**AI tool use.** [TODO: AI tool use acknowledgment, per course policy]
 
 # References {-}
 
