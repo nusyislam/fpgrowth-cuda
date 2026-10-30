@@ -698,7 +698,7 @@ trees to the GPU, and with 28 threads sharing it, Online Retail at 0.2%
 takes 0.576 s against 0.354 s for OpenMP alone.
 <!-- src: GPU_DESIGN.md section 6 (0.11-0.22 s, gpu_init_s 0.14-0.22 s, 2-3.8x slower); results/parallel_BLACK-OUT.csv cuda rows: count_kernel_s + tree_kernel_s 1.54..4.29 ms, transfers 0.17..1.18 ms on chess/mushroom/connect4; gpu_cond_trees online_retail 322, 469, chess 0.3 5, 0.25 8; online_retail 0.002 cuda_tall 0.576, omp_tall 0.354 -->
 
-![Total time relative to serial for serial (S), OpenMP with all threads (O), and CUDA with 1 (C1) or all (C) mining threads; CUDA bars are split into GPU start-up, transfers, kernels and CPU work. Notice that the light start-up segment is the main difference between O and C, and that kernels and transfers are barely visible, as thin segments on top of the CUDA bars for Online Retail at 1% and 0.25%.](../results/figures/impl_compare_BLACK-OUT.png){#fig:impl width=52%}
+![Total time relative to serial for serial (S), OpenMP with all threads (O), and CUDA with 1 (C1) or all (C) mining threads; CUDA bars are split into GPU start-up, transfers, kernels and CPU work. Notice that the light start-up segment is the main difference between O and C, and that kernels and transfers are barely visible, as thin segments on top of the CUDA bars for Online Retail at 1% and 0.25%.](../results/figures/impl_compare_BLACK-OUT.png){#fig:impl width=100%}
 
 ## Kernel level: where the GPU does win
 
@@ -853,7 +853,7 @@ machines differ in GPU type, CUDA version and operating system (the RTX
 causes the difference.
 <!-- src: results/parallel_jetson-orin.csv gpu_init_s min 0.0543 max 0.0609 over cuda_t1 and cuda_tall rows (12 levels x 2); results/parallel_BLACK-OUT.csv gpu_init_s min 0.1385 max 0.2182; results/gpu_info_*.txt (CUDA 13.2 / 12.4, WSL2 kernel) -->
 
-![Total time relative to serial on the Jetson Orin Nano for serial (S), OpenMP with 6 threads (O), and CUDA with 1 (C1) or 6 (C) mining threads, split as in [@fig:impl]. Notice that the light start-up segment is clearly visible only at the smallest level of each dataset, and that C is within 3% of O at the hardest level of each dataset.](../results/figures/impl_compare_jetson-orin.png){#fig:impl-jetson width=52%}
+![Total time relative to serial on the Jetson Orin Nano for serial (S), OpenMP with 6 threads (O), and CUDA with 1 (C1) or 6 (C) mining threads, split as in [@fig:impl]. Notice that the light start-up segment is clearly visible only at the smallest level of each dataset, and that C is within 3% of O at the hardest level of each dataset.](../results/figures/impl_compare_jetson-orin.png){#fig:impl-jetson width=100%}
 
 **The offload threshold matters less on the Jetson** ([@fig:gputhresh-jetson]).
 With one mining thread, a threshold of 64 makes mining only 1.1% slower
