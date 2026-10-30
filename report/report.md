@@ -9,7 +9,10 @@ abstract: |
   reference, and the mlxtend library, and measured it on four UCI datasets
   over a wide range of support thresholds. I also built an OpenMP version
   and a CUDA hybrid version and compared all three on a desktop with an
-  Intel i7-14700K and an RTX 4070 GPU.
+  Intel i7-14700K and an RTX 4070 GPU, and on an NVIDIA Jetson Orin Nano
+  in the lab. On the Jetson's six cores OpenMP gave best speedups of 5.2
+  to 6.7 times, and CUDA came within a few percent of OpenMP without
+  beating it.
 ---
 
 ```{=openxml}
@@ -542,7 +545,7 @@ flags as the serial binary and only the CUDA kernels go through `nvcc`, so
 speed differences come from the parallelization.
 <!-- src: GPU_DESIGN.md intro; Makefile comment -->
 
-## OpenMP version
+## OpenMP version {#sec:omp}
 
 The top-level loop over the frequent items of the initial tree consists of
 independent subproblems that share only the read-only initial tree. It runs
@@ -588,7 +591,8 @@ therefore relative to the 1-thread OpenMP run.
 
 Two facts decided what goes to the GPU: mining is output-bound
 ([@sec:outbound]), and conditional trees are tiny (on average 3 to 7 nodes
-on the dense datasets and at most about 150 on Online Retail). A CUDA context
+on the dense datasets and on average at most about 150 on Online
+Retail). A CUDA context
 costs about 0.15 s to create, and one GPU round trip tens of microseconds.
 So only the regular, data-parallel counting steps go to the GPU:
 <!-- src: GPU_DESIGN.md section 1 (~0.15 s context, tens of microseconds); results/bench.csv cond_nodes/cond_trees (dense 3.1..7.2, online_retail 149.1 at 0.5%) -->
@@ -736,10 +740,10 @@ Four reasons keep this from becoming an end-to-end speedup:
    the critical path: 9 ms of wall time, while 73.5 ms of CPU work spread
    over 28 threads costs only a few milliseconds.
 4. **Deeper trees are too small.** The remaining counting happens in
-   conditional trees averaging 3 to 7 nodes on the dense datasets and at
-   most about 150 on Online Retail, where the GPU loses even on the kernel
+   conditional trees averaging 3 to 7 nodes on the dense datasets and on
+   average at most about 150 on Online Retail, where the GPU loses even on the kernel
    alone, as the 411-node tree shows.
-<!-- src: GPU_DESIGN.md "Why none of this shows up end to end"; results/kernel_micro_BLACK-OUT.csv online_retail 0.002 (cpu_s 0.0735, gpu_wall_s 0.00898, gpu_prep_s 0.006876 = 6.9 ms, gpu_kernel_xfer_s 0.00231, matrix_entries 2701650), chess 0.25 cpu_s 0.00169; results/parallel_BLACK-OUT.csv online_retail 0.002 serial 4.084, chess 0.25 serial 27.771; results/bench.csv cond_nodes/cond_trees -->
+<!-- src: GPU_DESIGN.md "Why none of this shows up end to end"; results/kernel_micro_BLACK-OUT.csv online_retail 0.002 (cpu_s 0.0735, gpu_wall_s 0.00898, gpu_prep_s 0.006876 = 6.9 ms, gpu_kernel_xfer_s 0.00231, matrix_entries 2701650), chess 0.25 cpu_s 0.00169; results/parallel_BLACK-OUT.csv online_retail 0.002 serial 4.084, chess 0.25 serial 27.771; results/bench.csv cond_nodes/cond_trees (online_retail per-level averages 1.0..149.1, max at 0.5%) -->
 
 The GPU kernel is fast, but it accelerates a small fraction of FP-Growth's
 runtime on these datasets, which is dominated by irregular, output-heavy
@@ -815,7 +819,7 @@ from 4 to 6 threads still gains 1.31 to 1.47 times on these runs (1.5
 would be linear). The best speedups over the serial binary are 6.1×
 (Chess 30%), 6.7× (Mushroom 1%), 6.2× (Connect-4 60%) and 5.2× (Online
 Retail 0.2%). They can exceed 6 because of the `--unsorted` buffering
-confound described in [@sec:par]: on the Jetson the 1-thread OpenMP run is
+confound described in [@sec:omp]: on the Jetson the 1-thread OpenMP run is
 up to 13.5% faster than the serial binary. Connect-4 at 85% and Online
 Retail at 1% (0.24 and 0.36 s on one thread) gain only 1.5 and 1.4 times
 from 6 threads, because reading and building, which are serial, take 0.135
@@ -976,13 +980,8 @@ Repository, 1983. [Online]. Available: https://doi.org/10.24432/C5DK5C.
 [9] D. Chen. "Online Retail," UCI Machine Learning Repository, 2015.
 [Online]. Available: https://doi.org/10.24432/C5BW33.
 
-# Appendix A: Building and running {-}
+# Appendix: Building, running and repository layout {-}
 
-Instructions for building, testing and running every program and `make`
-target are in `README.md` at the top level of the submitted zip file.
-
-# Appendix B: Repository layout {-}
-
-The repository layout, the build requirements and the steps to reproduce
-every result in this report are in `README.md` at the top level of the
-submitted zip file.
+Build requirements, instructions for every program and `make` target, the
+repository layout and the steps to reproduce every result in this report
+are in `README.md` at the top level of the submitted zip file.
