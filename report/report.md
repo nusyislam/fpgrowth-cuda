@@ -871,11 +871,10 @@ path 52.8 ms (4.4×, against 8.2× on the RTX 4070 machine). On the
 411-node Connect-4 tree the Jetson's kernel (17.7 µs) is faster than its
 CPU (26.8 µs), where the RTX 4070 lost (25.0 µs against 8.2 µs), but
 with the copies it loses too (34.9 µs). On Chess and Mushroom the kernel
-takes 0.43 to 0.50 ms for trees of 10.8k to 31.8k nodes, while the
-5.7k-node Connect-4 tree takes 0.045 ms and the 297k-node Online Retail
-tree 2.1 ms; I have not found the reason for this. [TODO: explain the
-Chess/Mushroom kernel times on the Jetson]
-<!-- src: results/kernel_micro_jetson-orin.csv speedup_kernel 2.36 (chess 0.6) to 52.37 (online_retail 0.01) on all but connect4 0.85; online_retail 0.002 cpu_s 0.2335725, gpu_kernel_s 0.006859, speedup_kernel 34.05, gpu_kernel_xfer_s 0.007546 (30.95), gpu_wall_s 0.052830 (4.42); connect4 0.85 cpu_s 0.000026842, gpu_kernel_s 0.000017664, gpu_kernel_xfer_s 0.000034880; gpu_kernel_s chess 0.6 0.000465, 0.25 0.000504, mushroom 0.1 0.000429, 0.01 0.000441 (tree_nodes 10844..31813), connect4 0.5 0.0000446 (5715), online_retail 0.01 0.002132 (297089); results/kernel_micro_BLACK-OUT.csv speedup_kernel 9.17..109.70, online_retail 0.002 speedup_wall 8.18, connect4 0.85 gpu_kernel_s 0.000024992, cpu_s 0.000008184 -->
+takes 0.43 to 0.50 ms for trees of 10.8k to 31.8k nodes, much more
+relative to tree size than the 0.045 ms of the 5.7k-node Connect-4 tree
+at 50%. I did not investigate the cause.
+<!-- src: results/kernel_micro_jetson-orin.csv speedup_kernel 2.36 (chess 0.6) to 52.37 (online_retail 0.01) on all but connect4 0.85; online_retail 0.002 cpu_s 0.2335725, gpu_kernel_s 0.006859, speedup_kernel 34.05, gpu_kernel_xfer_s 0.007546 (30.95), gpu_wall_s 0.052830 (4.42); connect4 0.85 cpu_s 0.000026842, gpu_kernel_s 0.000017664, gpu_kernel_xfer_s 0.000034880; gpu_kernel_s chess 0.6 0.000465, 0.25 0.000504, mushroom 0.1 0.000429, 0.01 0.000441 (tree_nodes 10844..31813), connect4 0.5 0.0000446 (5715); results/kernel_micro_BLACK-OUT.csv speedup_kernel 9.17..109.70, online_retail 0.002 speedup_wall 8.18, connect4 0.85 gpu_kernel_s 0.000024992, cpu_s 0.000008184 -->
 
 **Transfers cost less, but not nothing.** `fpgrowth_cuda` copies with
 `cudaMemcpyAsync` on both machines; on the Jetson the source and
@@ -927,9 +926,12 @@ support. My implementation was 6.3 to 29.8 times faster than mlxtend's
 `fpgrowth()` call. OpenMP over the top-level items gave speedups of 7.1 to
 11.8 times on 28 logical CPUs. The CUDA kernel is up to 110 times faster
 than the CPU for its step, but gives no end-to-end gain because that step
-is a few percent of the runtime. Splitting deeper recursion levels across
-threads would be the next improvement.
-<!-- src: make test output (3356, 1354, 6); 14 mlxtend settings = Han + 13 UCI; results/tables.md (compression 0.0001 on Connect-4; mlxtend 6.3x-29.8x); results/bench.csv ns per itemset (194-282 ns); GPU_DESIGN.md section 6 (7.1x-11.8x); results/kernel_micro_BLACK-OUT.csv (110x) -->
+is a few percent of the runtime. On the 6-core Jetson Orin Nano, OpenMP
+gave 5.2 to 6.7 times, and with a cheaper GPU start-up (0.054 to 0.061 s)
+and cheaper copies CUDA came within 0.4% to 2.6% of OpenMP on the hardest
+levels without beating it, so the conclusion is the same. Splitting
+deeper recursion levels across threads would be the next improvement.
+<!-- src: make test output (3356, 1354, 6); 14 mlxtend settings = Han + 13 UCI; results/tables.md (compression 0.0001 on Connect-4; mlxtend 6.3x-29.8x); results/bench.csv ns per itemset (194-282 ns); GPU_DESIGN.md section 6 (7.1x-11.8x); results/kernel_micro_BLACK-OUT.csv (110x); Jetson numbers from the Jetson section: results/parallel_jetson-orin.csv serial/omp_tall 5.18..6.74 on the hardest levels, gpu_init_s 0.0543..0.0609, cuda_tall/omp_tall 1.004..1.026 on the hardest levels; results/kernel_micro_jetson-orin.csv transfers -->
 
 # References {-}
 
