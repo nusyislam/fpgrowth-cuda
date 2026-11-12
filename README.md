@@ -1,7 +1,47 @@
-# FP-Growth frequent itemset mining (ESE 327 project)
+# FP-Growth frequent itemset mining in C++17, OpenMP and CUDA
 
-A C++17 implementation of the FP-Growth algorithm (Han, Pei & Yin, 2000)
-for frequent itemset mining, with:
+An implementation of the FP-Growth frequent itemset mining algorithm in
+C++17, with OpenMP and CUDA versions, benchmarked on four UCI datasets on
+an RTX 4070 desktop and an NVIDIA Jetson Orin Nano.
+
+I built it as a course project. The full write-up is in
+[`report/report.pdf`](report/report.pdf) (also
+[`report/report.docx`](report/report.docx), built from
+[`report/report.md`](report/report.md)), and the parallel design is in
+[`GPU_DESIGN.md`](GPU_DESIGN.md).
+
+## Highlights
+
+- **Tested for correctness** against the Han & Kamber textbook example,
+  a brute-force reference (3,356 randomized runs, plus 1,354 more under
+  AddressSanitizer with no sanitizer reports), six hand-written edge cases,
+  and exact itemset-and-support comparisons with mlxtend on 14 settings.
+- **6.3x to 29.8x faster than mlxtend's `fpgrowth()`** across 13 settings
+  on the four datasets, while using far less memory (5.8 MB against
+  373 MB on Chess at 60%).
+- **OpenMP speedups** of 7.1x to 11.8x over the serial binary on the
+  desktop (Intel i7-14700K, 28 logical CPUs), and 5.2x to 6.7x on the
+  Jetson Orin Nano's six cores.
+- **The GPU kernel is up to 110x faster than one CPU thread for its step,
+  but gives no end-to-end gain.** That step is at most 1.8% of a serial
+  run, the CUDA context costs 0.14 to 0.22 s per run on the desktop, on
+  the largest trees preparing them for the GPU costs more than the copies
+  and kernel together, and the deeper conditional trees are too small for
+  the GPU. On the Jetson, where GPU start-up is cheaper, CUDA came within
+  0.4% to 2.6% of OpenMP on the hardest settings without beating it.
+
+![Runtime against minimum support on the four datasets](results/figures/runtime_vs_support.png)
+
+*Total runtime against minimum support (log scale). Runtime follows the
+number of frequent itemsets found.*
+
+![Serial, OpenMP and CUDA runtime relative to serial on the RTX 4070 machine](results/figures/impl_compare_BLACK-OUT.png)
+
+*Serial (S), OpenMP with all threads (O), and CUDA with 1 (C1) or all (C)
+mining threads, relative to serial, on the RTX 4070 machine. The light
+GPU start-up segment is the main difference between O and C.*
+
+## What is in the repository
 
 - a serial reference binary, `fpgrowth`, with built-in phase timers, peak
   memory and counters;
@@ -13,8 +53,6 @@ for frequent itemset mining, with:
 - an OpenMP version (`fpgrowth_omp`) and a CUDA + OpenMP hybrid
   (`fpgrowth_cuda`); see `GPU_DESIGN.md`.
 
-The project report is `report/report.docx`, built from `report/report.md`.
-
 ## Requirements
 
 - `make` and a C++17 compiler (`g++`; set `CXX` to use another)
@@ -23,7 +61,9 @@ The project report is `report/report.docx`, built from `report/report.md`.
   into `.venv/` on first use
 - `curl` and `gzip` for `make data`
 - optional: OpenMP (`-fopenmp`) for `make omp`; the CUDA toolkit (`nvcc`)
-  and an NVIDIA GPU for `make cuda`; `pandoc` for `make report`
+  and an NVIDIA GPU for `make cuda` (defaults are `ARCH=sm_89` and
+  `NVCC_CCBIN=g++-13`; override both to match your GPU and the host
+  compilers your CUDA version supports); `pandoc` for `make report`
 
 ## Build and run
 
@@ -102,7 +142,9 @@ make figures                            # adds omp_speedup_, impl_compare_,
 Jetson Orin. Benchmark caps and the machine used are recorded in
 `results/machine.txt` and `results/gpu_info_<host>.txt`.
 
-Finally, `make report` rebuilds `report/report.docx`.
+Finally, `make report` rebuilds `report/report.docx`. `report/report.pdf` is
+exported from it with LibreOffice:
+`soffice --headless --convert-to pdf --outdir report report/report.docx`.
 
 ## Repository layout
 
@@ -122,4 +164,8 @@ Finally, `make report` rebuilds `report/report.docx`.
 | `results/figures/` | Figures, PNG (used in the report) and PDF |
 | `GPU_DESIGN.md` | Design and results of the OpenMP and CUDA versions |
 | `LAB_RUN.md` | Running the parallel experiments on the lab machines |
-| `report/` | `report.md` (source), `crossref.lua` (pandoc filter), `make_reference.py` (styles), `report.docx` |
+| `report/` | `report.md` (source), `crossref.lua` (pandoc filter), `make_reference.py` (styles), `report.docx`, `report.pdf` |
+
+## License
+
+MIT; see [`LICENSE`](LICENSE).
