@@ -1,14 +1,31 @@
+# Build outputs
 build/
-fpgrowth
-fpgrowth_debug
+/fpgrowth
+/fpgrowth_debug
+/fpgrowth_omp
+/fpgrowth_cuda
+/gpuinfo
 *.exe
 *.o
+
+# Python
 .venv/
 __pycache__/
-tests/failures/
+
+# Data (downloaded and converted by `make data`)
 data/raw/
 data/processed/
 results/raw/
-gpuinfo
-fpgrowth_omp
-fpgrowth_cuda
+
+# Test artifacts
+tests/failures/
+
+# Office lock and temp files
+~$*
+.~lock.*#
+
+# Editor, OS and tool scratch files
+.claude/
+*.swp
+*~
+.DS_Store
